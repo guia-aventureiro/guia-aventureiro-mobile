@@ -1,6 +1,5 @@
-import { formatBRL } from '../components/Input';
 // mobile/src/screens/EditItineraryScreen.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -138,7 +137,7 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
     return isValidForm;
   };
 
-  const calculateDuration = (): number | null => {
+  const calculatedDuration = useMemo(() => {
     if (!startDate || !endDate || !validateDate(startDate) || !validateDate(endDate)) {
       return null;
     }
@@ -150,9 +149,9 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
     } catch {
       return null;
     }
-  };
+  }, [startDate, endDate]);
 
-  const handleStartDateChange = (value: string) => {
+  const handleStartDateChange = useCallback((value: string) => {
     setStartDate(value);
 
     // Auto-ajustar data de fim se necessário
@@ -166,9 +165,9 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
         setEndDate(format(suggestedEnd, 'dd/MM/yyyy'));
       }
     }
-  };
+  }, [endDate]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!title || !city || !country) {
       showError('Preencha todos os campos obrigatórios');
       return;
@@ -221,7 +220,7 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [title, city, country, validateDates, startDate, endDate, showError, budgetLevel, itinerary, status, id, success, navigation]);
 
   if (loading) {
     return (
@@ -231,13 +230,11 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
     );
   }
 
-  const duration = calculateDuration();
-
-  const budgetOptions = [
+  const budgetOptions = useMemo(() => [
     { value: 'economico', label: 'Econômico', icon: '💰' },
     { value: 'medio', label: 'Médio', icon: '💳' },
     { value: 'luxo', label: 'Luxo', icon: '💎' },
-  ];
+  ], []);
 
   const statusOptions = [
     { value: 'rascunho', label: 'Rascunho', icon: '📝' },
@@ -327,12 +324,12 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
                   error={dateErrors.end}
                 />
                 {/* Preview de duração */}
-                {duration !== null && duration > 0 && !dateErrors.start && !dateErrors.end && (
+                {calculatedDuration !== null && calculatedDuration > 0 && !dateErrors.start && !dateErrors.end && (
                   <View style={[styles.durationPreview, { backgroundColor: colors.primary + '15' }]}> 
                     <Text style={styles.durationIcon}>📅</Text>
                     <View style={styles.durationTextContainer}>
                       <Text style={[styles.durationText, { color: colors.primary }]}> 
-                        {duration} {duration === 1 ? 'dia' : 'dias'} de viagem
+                        {calculatedDuration} {calculatedDuration === 1 ? 'dia' : 'dias'} de viagem
                       </Text>
                       {startDate && endDate && validateDate(startDate) && validateDate(endDate) && (
                         <Text style={[styles.durationDates, { color: colors.textSecondary }]}> 

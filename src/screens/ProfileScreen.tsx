@@ -13,25 +13,35 @@ import {
   Share,
   Image,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Switch
 } from 'react-native';
 import { showAlert } from '../components/CustomAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useColors } from '../hooks/useColors';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { itineraryService } from '../services/itineraryService';
 import { authService } from '../services/authService';
 import { photoService } from '../services/photoService';
+import analyticsService from '../services/analyticsService';
 import { apiUrl } from '../config/env';
+import { Tooltip } from '../components/Tooltip';
+import { useTooltip } from '../hooks/useTooltip';
+import { PlanBadge } from '../components/PlanBadge';
+import { useMySubscription } from '../hooks/useSubscription';
 
 export const ProfileScreen = ({ navigation }: any) => {
   const { user, logout, updateProfile } = useAuth();
   const colors = useColors();
+  const { shouldShowTooltip, markTooltipAsShown, resetTooltips } = useTooltip();
+  const { data: subscriptionData } = useMySubscription();
+  const currentPlan = subscriptionData?.subscription?.plan || 'free';
   
   const [stats, setStats] = useState({ total: 0, completed: 0, countries: 0, lastItinerary: '' });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [showAchievementsTooltip, setShowAchievementsTooltip] = useState(false);
   
   // Modal Editar Perfil
   const [showEditModal, setShowEditModal] = useState(false);
@@ -46,16 +56,6 @@ export const ProfileScreen = ({ navigation }: any) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
 
-  // Modal Preferências
-  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
-  const [preferences, setPreferences] = useState({
-    travelStyle: user?.preferences?.travelStyle || '',
-    interests: user?.preferences?.interests || [],
-    budgetLevel: user?.preferences?.budgetLevel || '',
-    pace: user?.preferences?.pace || '',
-  });
-  const [savingPreferences, setSavingPreferences] = useState(false);
-
   // Modal Compartilhar
   const [showShareModal, setShowShareModal] = useState(false);
   const [publicProfile, setPublicProfile] = useState(user?.publicProfile || false);
@@ -64,6 +64,7 @@ export const ProfileScreen = ({ navigation }: any) => {
   // Modal Configurações
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [cacheSize, setCacheSize] = useState('0 MB');
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
 
   const loadStats = useCallback(async () => {
     try {
@@ -125,11 +126,51 @@ export const ProfileScreen = ({ navigation }: any) => {
     }
   }, []);
 
+  const loadAnalyticsPreference = useCallback(async () => {
+    try {
+      const enabled = await AsyncStorage.getItem('@analytics_enabled');
+      setAnalyticsEnabled(enabled !== 'false');
+    } catch (error) {
+      console.error('Erro ao carregar preferência de analytics:', error);
+    }
+  }, []);
+
+  const toggleAnalytics = useCallback(async (enabled: boolean) => {
+    try {
+      setAnalyticsEnabled(enabled);
+      await AsyncStorage.setItem('@analytics_enabled', enabled ? 'true' : 'false');
+      await analyticsService.setEnabled(enabled);
+      showAlert(
+        'Analytics',
+        enabled 
+          ? 'Coleta de dados de uso habilitada. Isso nos ajuda a melhorar o app!'
+          : 'Coleta de dados de uso desabilitada.'
+      );
+    } catch (error) {
+      console.error('Erro ao alterar preferência de analytics:', error);
+      showAlert('Erro', 'Não foi possível alterar a preferência');
+    }
+  }, []);
+
   useEffect(() => {
     loadStats();
     calculateCacheSize();
+    loadAnalyticsPreference();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Carregar apenas no mount
+
+  // Tooltip para conquistas - não mostrar se estiver carregando
+  useEffect(() => {
+    if (!loadingStats && shouldShowTooltip('achievements')) {
+      const timer = setTimeout(() => {
+        setShowAchievementsTooltip(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      // Garantir que o tooltip está fechado se não deve ser mostrado
+      setShowAchievementsTooltip(false);
+    }
+  }, [loadingStats, shouldShowTooltip]);
 
   const handleEditProfile = () => {
     setNewName(user?.name || '');
@@ -204,27 +245,45 @@ export const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleOpenPreferences = () => {
-    setPreferences({
-      travelStyle: user?.preferences?.travelStyle || '',
-      interests: user?.preferences?.interests || [],
-      budgetLevel: user?.preferences?.budgetLevel || '',
-      pace: user?.preferences?.pace || '',
-    });
-    setShowPreferencesModal(true);
-  };
-
-  const handleSavePreferences = async () => {
-    setSavingPreferences(true);
-    try {
-      await updateProfile(user?.name || '', user?.avatar, preferences);
-      showAlert('Sucesso', 'Preferências salvas!');
-      setShowPreferencesModal(false);
-    } catch (error: any) {
-      showAlert('Erro', 'Erro ao salvar preferências');
-    } finally {
-      setSavingPreferences(false);
-    }
+  const handleResetTutorial = async () => {
+    // Fechar tooltip de achievements se estiver aberto
+    setShowAchievementsTooltip(false);
+    
+    showAlert(
+      'Rever Tutorial',
+      'Deseja reiniciar todas as dicas e ver o tutorial novamente? Você será desconectado para reiniciar o app.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Sim', 
+          onPress: () => {
+            resetTooltips()
+              .then(() => {
+                setTimeout(() => {
+                  showAlert(
+                    'Sucesso', 
+                    'Tutorial reiniciado! Você será desconectado. Faça login novamente para ver o tutorial completo.',
+                    [
+                      {
+                        text: 'OK',
+                        onPress: () => {
+                          // Fazer logout após 500ms para garantir que o alert fechou
+                          setTimeout(() => {
+                            logout();
+                          }, 500);
+                        }
+                      }
+                    ]
+                  );
+                }, 400);
+              })
+              .catch(error => {
+                console.error('Erro ao resetar tooltips:', error);
+              });
+          }
+        }
+      ]
+    );
   };
 
   const handleShareProfile = async () => {
@@ -294,27 +353,6 @@ export const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleDeleteAccount = () => {
-    showAlert(
-      'Excluir Conta',
-      'ATENÇÃO: Esta ação é irreversível. Todos os seus roteiros serão perdidos. Deseja continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: executeDelete },
-      ]
-    );
-  };
-
-  const executeDelete = async () => {
-    try {
-      await authService.deleteAccount();
-      showAlert('Conta Excluída', 'Sua conta foi excluída com sucesso.');
-      logout();
-    } catch (error: any) {
-      showAlert('Erro', 'Erro ao excluir conta');
-    }
-  };
-
   const handleLogout = () => {
     showAlert(
       'Sair',
@@ -357,11 +395,9 @@ export const ProfileScreen = ({ navigation }: any) => {
         <Text style={[styles.memberSince, { color: colors.textSecondary }]}>
           Membro desde {formatDate(user?.createdAt || '')}
         </Text>
-        {user?.isPremium && (
-          <View style={[styles.premiumBadge, { backgroundColor: colors.accentAlt }]}>
-            <Text style={[styles.premiumText, { color: colors.text }]}>✨ Premium</Text>
-          </View>
-        )}
+        <View style={{ marginTop: 8 }}>
+          <PlanBadge plan={currentPlan} size="medium" />
+        </View>
       </View>
 
       {/* Estatísticas */}
@@ -412,6 +448,38 @@ export const ProfileScreen = ({ navigation }: any) => {
       </View>
 
       <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>ASSINATURA</Text>
+        <TouchableOpacity 
+          style={[styles.menuItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+          onPress={() => navigation.navigate('Usage')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Text style={{ fontSize: 20 }}>📊</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuText, { color: colors.text }]}>Uso & Assinatura</Text>
+              <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Veja seu uso e gerencie seu plano</Text>
+            </View>
+          </View>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
+        </TouchableOpacity>
+        {currentPlan !== 'pro' && (
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+            onPress={() => navigation.navigate('Pricing')}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Text style={{ fontSize: 20 }}>⬆️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuText, { color: colors.text }]}>Fazer Upgrade</Text>
+                <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Desbloqueie mais recursos</Text>
+              </View>
+            </View>
+            <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>APARÊNCIA</Text>
         <ThemeToggle />
       </View>
@@ -430,13 +498,6 @@ export const ProfileScreen = ({ navigation }: any) => {
           onPress={handleChangePassword}
         >
           <Text style={[styles.menuText, { color: colors.text }]}>Alterar senha</Text>
-          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.menuItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
-          onPress={handleOpenPreferences}
-        >
-          <Text style={[styles.menuText, { color: colors.text }]}>Preferências de viagem</Text>
           <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
       </View>
@@ -469,12 +530,16 @@ export const ProfileScreen = ({ navigation }: any) => {
           </View>
           <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
+        
         <TouchableOpacity 
           style={[styles.menuItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
-          onPress={handleDeleteAccount}
+          onPress={handleResetTutorial}
         >
-          <Text style={[styles.menuText, { color: colors.error }]}>Excluir conta</Text>
-          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
+          <View>
+            <Text style={[styles.menuText, { color: colors.text }]}>Rever Tutorial</Text>
+            <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Ver novamente as dicas do app</Text>
+          </View>
+          <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>🔄</Text>
         </TouchableOpacity>
       </View>
 
@@ -633,180 +698,6 @@ export const ProfileScreen = ({ navigation }: any) => {
       </View>
     </Modal>
 
-      {/* Modal Preferências */}
-      <Modal
-        visible={showPreferencesModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPreferencesModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1, justifyContent: 'center' }}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-          >
-            <View style={[styles.modalContentLarge, { backgroundColor: colors.card }]}> 
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Preferências de Viagem</Text>
-            <Text style={[styles.scrollHint, { color: colors.textSecondary }]}>↓ Role para ver todas as opções ↓</Text>
-            
-            <ScrollView style={styles.preferencesScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.formContent}>
-              
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Estilo de Viagem</Text>
-              <View style={styles.optionsGrid}>
-                {[
-                  { value: 'solo', label: 'Solo', icon: '🚶' },
-                  { value: 'casal', label: 'Casal', icon: '💑' },
-                  { value: 'familia', label: 'Família', icon: '👨‍👩‍👧‍👦' },
-                  { value: 'amigos', label: 'Amigos', icon: '👥' },
-                  { value: 'mochileiro', label: 'Mochileiro', icon: '🎒' },
-                ].map((style) => (
-                  <TouchableOpacity
-                    key={style.value}
-                    style={[
-                      styles.optionButton,
-                      { borderColor: colors.border },
-                      preferences.travelStyle === style.value && { backgroundColor: colors.primary, borderColor: colors.primary }
-                    ]}
-                    onPress={() => setPreferences({ ...preferences, travelStyle: style.value as any })}
-                  >
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{style.icon}</Text>
-                    <Text style={[
-                      styles.optionText,
-                      { color: colors.text },
-                      preferences.travelStyle === style.value && { color: '#FFFFFF' }
-                    ]}>
-                      {style.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nível de Orçamento</Text>
-              <View style={styles.optionsGrid}>
-                {[
-                  { value: 'economico', label: 'Econômico', icon: '💰' },
-                  { value: 'medio', label: 'Médio', icon: '💳' },
-                  { value: 'luxo', label: 'Luxo', icon: '💎' },
-                ].map((budget) => (
-                  <TouchableOpacity
-                    key={budget.value}
-                    style={[
-                      styles.optionButton,
-                      { borderColor: colors.border },
-                      preferences.budgetLevel === budget.value && { backgroundColor: colors.primary, borderColor: colors.primary }
-                    ]}
-                    onPress={() => setPreferences({ ...preferences, budgetLevel: budget.value as any })}
-                  >
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{budget.icon}</Text>
-                    <Text style={[
-                      styles.optionText,
-                      { color: colors.text },
-                      preferences.budgetLevel === budget.value && { color: '#FFFFFF' }
-                    ]}>
-                      {budget.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Ritmo da Viagem</Text>
-              <View style={styles.optionsGrid}>
-                {[
-                  { value: 'relaxado', label: 'Relaxado', icon: '🧘' },
-                  { value: 'moderado', label: 'Moderado', icon: '🚶' },
-                  { value: 'intenso', label: 'Intenso', icon: '🏃' },
-                ].map((pace) => (
-                  <TouchableOpacity
-                    key={pace.value}
-                    style={[
-                      styles.optionButton,
-                      { borderColor: colors.border },
-                      preferences.pace === pace.value && { backgroundColor: colors.primary, borderColor: colors.primary }
-                    ]}
-                    onPress={() => setPreferences({ ...preferences, pace: pace.value as any })}
-                  >
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{pace.icon}</Text>
-                    <Text style={[
-                      styles.optionText,
-                      { color: colors.text },
-                      preferences.pace === pace.value && { color: '#FFFFFF' }
-                    ]}>
-                      {pace.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Interesses (selecione vários)</Text>
-              <View style={styles.optionsGrid}>
-                {[
-                  { value: 'cultura', label: 'Cultura', icon: '🎭' },
-                  { value: 'natureza', label: 'Natureza', icon: '🏞️' },
-                  { value: 'gastronomia', label: 'Gastronomia', icon: '🍽️' },
-                  { value: 'aventura', label: 'Aventura', icon: '🧗' },
-                  { value: 'praia', label: 'Praia', icon: '🏖️' },
-                  { value: 'historia', label: 'História', icon: '🏛️' },
-                  { value: 'compras', label: 'Compras', icon: '🛍️' },
-                  { value: 'vida-noturna', label: 'Vida Noturna', icon: '🎉' },
-                ].map((interest) => (
-                  <TouchableOpacity
-                    key={interest.value}
-                    style={[
-                      styles.optionButton,
-                      { borderColor: colors.border },
-                      preferences.interests.includes(interest.value) && { 
-                        backgroundColor: colors.primary, 
-                        borderColor: colors.primary 
-                      }
-                    ]}
-                    onPress={() => {
-                      const newInterests = preferences.interests.includes(interest.value)
-                        ? preferences.interests.filter(i => i !== interest.value)
-                        : [...preferences.interests, interest.value];
-                      setPreferences({ ...preferences, interests: newInterests });
-                    }}
-                  >
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>{interest.icon}</Text>
-                    <Text style={[
-                      styles.optionText,
-                      { color: colors.text },
-                      preferences.interests.includes(interest.value) && { color: '#FFFFFF' }
-                    ]}>
-                      {interest.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </ScrollView>
-          
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: colors.backgroundLight }]}
-              onPress={() => setShowPreferencesModal(false)}
-              disabled={savingPreferences}
-            >
-              <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonPrimary, { backgroundColor: colors.primary }]}
-              onPress={handleSavePreferences}
-              disabled={savingPreferences}
-            >
-              {savingPreferences ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Salvar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </View>
-    </Modal>
-
       {/* Modal Compartilhar */}
       <Modal
         visible={showShareModal}
@@ -951,6 +842,21 @@ export const ProfileScreen = ({ navigation }: any) => {
               </View>
             </View>
 
+            <View style={[styles.settingItem, { borderBottomColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>Analytics</Text>
+                <Text style={[styles.settingValue, { color: colors.textSecondary }]}>
+                  Compartilhar dados de uso para melhorias
+                </Text>
+              </View>
+              <Switch
+                value={analyticsEnabled}
+                onValueChange={toggleAnalytics}
+                trackColor={{ false: colors.border, true: colors.primary + '80' }}
+                thumbColor={analyticsEnabled ? colors.primary : colors.textSecondary}
+              />
+            </View>
+
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>Versão do app</Text>
               <Text style={[styles.settingValue, { color: colors.textSecondary }]}>1.0.0</Text>
@@ -969,6 +875,17 @@ export const ProfileScreen = ({ navigation }: any) => {
       </View>
     </Modal>
     </ScrollView>
+    
+    <Tooltip
+      visible={showAchievementsTooltip}
+      message="🏆 Toque em 'Conquistas' para ver seus desafios, progredir e desbloquear recompensas!"
+      position="center"
+      onClose={() => {
+        setShowAchievementsTooltip(false);
+        markTooltipAsShown('achievements');
+      }}
+      buttonText="Vamos lá!"
+    />
     </SafeAreaView>
   );
 };
@@ -1298,9 +1215,6 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     borderRadius: 16,
     padding: 20,
-  },
-  preferencesScroll: {
-    maxHeight: 500,
   },
   formContent: {
     paddingBottom: 16,

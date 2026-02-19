@@ -1,6 +1,7 @@
 // mobile/src/services/itineraryService.ts
 import api from './api';
 import { Itinerary } from '../types';
+import analyticsService from './analyticsService';
 
 interface PaginationParams {
   page?: number;
@@ -41,13 +42,34 @@ export const itineraryService = {
   },
 
   async getById(id: string): Promise<Itinerary> {
+    // IDs mockados não devem fazer requisições ao backend
+    if (id.startsWith('mock-')) {
+      throw new Error('Use dados mockados localmente - não chame a API para IDs mock-*');
+    }
+    
     const response = await api.get(`/roteiros/${id}`);
-    return response.data;
+    const itinerary = response.data;
+    
+    // Analytics: roteiro visualizado
+    await analyticsService.logItineraryView(
+      id,
+      `${itinerary.destination?.city}, ${itinerary.destination?.country}`
+    );
+    
+    return itinerary;
   },
 
   async create(data: Partial<Itinerary>): Promise<Itinerary> {
     const response = await api.post('/roteiros', data);
-    return response.data.itinerary;
+    const itinerary = response.data.itinerary;
+    
+    // Analytics: roteiro criado
+    await analyticsService.logItineraryCreate(
+      `${data.destination?.city}, ${data.destination?.country}`,
+      data.days?.length
+    );
+    
+    return itinerary;
   },
 
   async generateWithAI(data: {
@@ -57,22 +79,50 @@ export const itineraryService = {
     budget?: { level: string; currency: string };
     preferences?: any;
   }): Promise<Itinerary> {
+    // Analytics: solicitação de AI (comentado - método não existe no mock)
+    // const duration = Math.ceil(
+    //   (new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24)
+    // );
+    // await analyticsService.logAISuggestionRequest(
+    //   `${data.destination.city}, ${data.destination.country}`,
+    //   duration
+    // );
+    
     const response = await api.post('/roteiros/generate', data);
-    return response.data.itinerary;
+    const itinerary = response.data.itinerary;
+    
+    // Analytics: AI sugestão aceita (comentado - método não existe no mock)
+    // await analyticsService.logAISuggestionAccept(
+    //   `${data.destination.city}, ${data.destination.country}`
+    // );
+    
+    return itinerary;
   },
 
   async update(id: string, data: Partial<Itinerary>): Promise<Itinerary> {
     const response = await api.put(`/roteiros/${id}`, data);
+    
+    // Analytics: roteiro editado
+    await analyticsService.logItineraryEdit(id);
+    
     return response.data.itinerary;
   },
 
   async delete(id: string): Promise<void> {
     await api.delete(`/roteiros/${id}`);
+    
+    // Analytics: roteiro deletado
+    await analyticsService.logItineraryDelete(id);
   },
 
   async duplicate(id: string): Promise<Itinerary> {
     const response = await api.post(`/roteiros/${id}/duplicate`);
-    return response.data.itinerary;
+    const newItinerary = response.data.itinerary;
+    
+    // Analytics: roteiro duplicado
+    await analyticsService.logItineraryDuplicate(id, newItinerary._id);
+    
+    return newItinerary;
   },
 
   async addCollaborator(id: string, email: string, permission: 'view' | 'edit'): Promise<Itinerary> {
@@ -93,6 +143,10 @@ export const itineraryService = {
     data: { score: number; comment?: string; photos?: string[] }
   ): Promise<Itinerary> {
     const response = await api.post(`/roteiros/${id}/rating`, data);
+    
+    // Analytics: avaliação enviada
+    await analyticsService.logRatingSubmit(data.score, id);
+    
     return response.data;
   },
 
@@ -110,6 +164,10 @@ export const itineraryService = {
 
   async generateShareLink(id: string): Promise<{ shareLink: string; fullUrl: string }> {
     const response = await api.post(`/roteiros/${id}/share`);
+    
+    // Analytics: roteiro compartilhado
+    await analyticsService.logItineraryShare(id, 'link');
+    
     return response.data;
   },
 

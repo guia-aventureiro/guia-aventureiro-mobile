@@ -13,6 +13,14 @@ import { useColors } from '../hooks/useColors';
 import { Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditItineraryScreen } from '../screens/EditItineraryScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { RecommendationsScreen } from '../screens/RecommendationsScreen';
+import { BudgetScreen } from '../screens/BudgetScreen';
+import { MapScreen } from '../screens/MapScreen';
+import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
+import { PricingScreen } from '../screens/PricingScreen';
+import { UsageScreen } from '../screens/UsageScreen';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -29,6 +37,10 @@ const DashboardStack = () => {
       <Stack.Screen name="DashboardMain" component={DashboardScreen} />
       <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
       <Stack.Screen name="EditItinerary" component={EditItineraryScreen} />
+      <Stack.Screen name="Budget" component={BudgetScreen} />
+      <Stack.Screen name="Map" component={MapScreen} />
+      <Stack.Screen name="Pricing" component={PricingScreen} />
+      <Stack.Screen name="Usage" component={UsageScreen} />
     </Stack.Navigator>
   );
 };
@@ -44,6 +56,10 @@ const GenerateStack = () => {
     >
       <Stack.Screen name="GenerateMain" component={GenerateScreen} />
       <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
+      <Stack.Screen name="Budget" component={BudgetScreen} />
+      <Stack.Screen name="Map" component={MapScreen} />
+      <Stack.Screen name="Pricing" component={PricingScreen} />
+      <Stack.Screen name="Usage" component={UsageScreen} />
     </Stack.Navigator>
   );
 };
@@ -60,6 +76,9 @@ const ProfileStack = () => {
       <Stack.Screen name="ProfileMain" component={ProfileScreen} />
       <Stack.Screen name="EditPreferences" component={EditPreferencesScreen} />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <Stack.Screen name="Pricing" component={PricingScreen} />
+      <Stack.Screen name="Usage" component={UsageScreen} />
     </Stack.Navigator>
   );
 };
@@ -74,7 +93,29 @@ const ExploreStack = () => {
       }}
     >
       <Stack.Screen name="ExploreMain" component={ExploreScreen} />
+      <Stack.Screen name="RecommendationsMain" component={RecommendationsScreen} />
       <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
+      <Stack.Screen name="Budget" component={BudgetScreen} />
+      <Stack.Screen name="Map" component={MapScreen} />
+      <Stack.Screen name="Pricing" component={PricingScreen} />
+      <Stack.Screen name="Usage" component={UsageScreen} />
+    </Stack.Navigator>
+  );
+};
+
+// Stack de Notificações
+const NotificationsStack = () => {
+  return (
+    <Stack.Navigator
+      id="NotificationsStack"
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="NotificationsMain" component={NotificationsScreen} />
+      <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
+      <Stack.Screen name="Pricing" component={PricingScreen} />
+      <Stack.Screen name="Usage" component={UsageScreen} />
     </Stack.Navigator>
   );
 };
@@ -86,6 +127,7 @@ const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
 
 export const MainNavigator = () => {
   const colors = useColors();
+  const { unreadCount } = useNotifications();
   
   return (
     <Tab.Navigator
@@ -130,7 +172,16 @@ export const MainNavigator = () => {
         component={GenerateStack}
         options={{
           tabBarLabel: 'Criar',
-          tabBarIcon: ({ focused }) => <TabIcon icon="✨" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon="➕" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsStack}
+        options={{
+          tabBarLabel: 'Alertas',
+          tabBarIcon: ({ focused }) => <TabIcon icon="🔔" focused={focused} />,
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       />
       <Tab.Screen

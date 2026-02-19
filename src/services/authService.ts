@@ -2,6 +2,7 @@
 import api from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
+import analyticsService from './analyticsService';
 
 export const authService = {
   async signup(name: string, email: string, password: string) {
@@ -17,6 +18,9 @@ export const authService = {
     await AsyncStorage.setItem('accessToken', accessToken);
     await AsyncStorage.setItem('refreshToken', refreshToken);
     await AsyncStorage.setItem('user', JSON.stringify(user));
+    
+    // Analytics: novo cadastro
+    await analyticsService.logSignUp('email');
 
     return { user, accessToken, refreshToken };
   },
@@ -33,6 +37,9 @@ export const authService = {
       await AsyncStorage.setItem('accessToken', accessToken);
       await AsyncStorage.setItem('refreshToken', refreshToken);
       await AsyncStorage.setItem('user', JSON.stringify(user));
+      
+      // Analytics: login realizado
+      await analyticsService.logLogin('email');
 
       return { user, accessToken, refreshToken };
     } catch (error: any) {

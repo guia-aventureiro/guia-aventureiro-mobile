@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import env from '../config/env';
+import analyticsService from './analyticsService';
 
 interface UploadResult {
   url: string;
@@ -42,8 +43,7 @@ class PhotoService {
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [16, 9],
+        allowsEditing: false, // Desabilitado para evitar problemas no emulador
         quality: 0.8,
       });
 
@@ -165,6 +165,10 @@ class PhotoService {
 
       const data = await response.json();
       console.log('✅ Upload concluído:', data);
+      
+      // Analytics: foto enviada
+      await analyticsService.logPhotoUpload(1, 'camera');
+      
       return data.url; // Retorna apenas a URL
     } catch (error: any) {
       console.error('Erro ao fazer upload:', error);
@@ -191,6 +195,11 @@ class PhotoService {
       if (result && typeof result === 'string') {
         results.push(result);
       }
+    }
+    
+    // Analytics: múltiplas fotos enviadas
+    if (results.length > 0) {
+      await analyticsService.logPhotoUpload(results.length, 'gallery');
     }
 
     return results;

@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useColors } from '../hooks/useColors';

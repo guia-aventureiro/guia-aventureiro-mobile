@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { showAlert } from '../components/CustomAlert';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useColors } from '../hooks/useColors';
 
 export const EditPreferencesScreen = ({ navigation }: any) => {

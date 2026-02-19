@@ -1,6 +1,5 @@
-import { formatBRL } from '../components/Input';
 // mobile/src/screens/GenerateScreen.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,21 +18,43 @@ import { Input } from '../components/Input';
 import { DateInput } from '../components/DateInput';
 import { PlaceAutocomplete } from '../components/PlaceAutocomplete';
 import { Toast } from '../components/Toast';
+import { Tooltip } from '../components/Tooltip';
+import { LimitModal } from '../components/LimitModal';
 import { useToast } from '../hooks/useToast';
+import { useTooltip } from '../hooks/useTooltip';
 import { useColors } from '../hooks/useColors';
+import { useCanPerformAction, useMySubscription } from '../hooks/useSubscription';
+import { LimitError } from '../types/subscription';
 import { format, differenceInDays, addDays, parse, isValid, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Função para gerar URL de imagem do Unsplash baseada no destino
+const getCoverImageForDestination = (city: string, country: string): string => {
+  // Encode para URL
+  const searchQuery = encodeURIComponent(`${city} ${country} travel landmark`);
+  return `https://source.unsplash.com/800x400/?${searchQuery}`;
+};
 
 export const GenerateScreen = ({ navigation }: any) => {
   const colors = useColors();
   const { toast, hideToast, success, error: showError } = useToast();
+  const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
+  const { canUseAI, usage, plan } = useCanPerformAction();
+  const { data: subscriptionData } = useMySubscription();
+  
+  const [showAITooltip, setShowAITooltip] = useState(false);
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
+  const [coverImage, setCoverImage] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [budgetLevel, setBudgetLevel] = useState<'economico' | 'medio' | 'luxo'>('medio');
   const [travelStyle, setTravelStyle] = useState<'solo' | 'casal' | 'familia' | 'amigos' | 'mochileiro'>('solo');
   const [loading, setLoading] = useState(false);
+
+  // Limit Modal
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitError, setLimitError] = useState<LimitError | null>(null);
 
   // Validação de datas
   const [dateErrors, setDateErrors] = useState({ start: '', end: '' });
@@ -44,13 +65,20 @@ export const GenerateScreen = ({ navigation }: any) => {
     useCallback(() => {
       setCity('');
       setCountry('');
+      setCoverImage('');
       setStartDate('');
       setEndDate('');
       setBudgetLevel('medio');
       setTravelStyle('solo');
       setDateErrors({ start: '', end: '' });
       setResetKey(prev => prev + 1); // Força recriação do PlaceAutocomplete
-    }, [])
+      
+      // Mostrar tooltip IA na primeira vez
+      if (shouldShowTooltip('useAI')) {
+        const timer = setTimeout(() => setShowAITooltip(true), 1500);
+        return () => clearTimeout(timer);
+      }
+    }, [shouldShowTooltip])
   );
 
   // Converte DD/MM/AAAA para ISO com timezone seguro (meio-dia UTC para evitar mudança de dia)
@@ -126,7 +154,7 @@ export const GenerateScreen = ({ navigation }: any) => {
     return isValidForm;
   };
 
-  const calculateDuration = (): number | null => {
+  const calculatedDuration = useMemo(() => {
     if (!startDate || !endDate || !validateDate(startDate) || !validateDate(endDate)) {
       return null;
     }
@@ -138,9 +166,9 @@ export const GenerateScreen = ({ navigation }: any) => {
     } catch {
       return null;
     }
-  };
+  }, [startDate, endDate]);
 
-  const handleStartDateChange = (value: string) => {
+  const handleStartDateChange = useCallback((value: string) => {
     setStartDate(value);
 
     // Auto-ajustar data de fim se necessário
@@ -154,9 +182,14 @@ export const GenerateScreen = ({ navigation }: any) => {
         setEndDate(format(suggestedEnd, 'dd/MM/yyyy'));
       }
     }
-  };
+  }, [endDate]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
+    if (loading) {
+      console.log('⏳ Já está gerando, ignorando clique duplicado');
+      return;
+    }
+
     if (!city || !country) {
       showError('Preencha o destino');
       return;
@@ -164,6 +197,26 @@ export const GenerateScreen = ({ navigation }: any) => {
 
     if (!validateDates()) {
       showError('Corrija os erros nas datas');
+      return;
+    }
+
+    // Verificar limite de IA ANTES de tentar gerar
+    const can = canUseAI();
+    if (can === false) {
+      setLimitError({
+        error: 'limit_reached',
+        message: `Você atingiu o limite de ${usage?.aiGenerations.limit} gerações com IA por mês do plano ${plan?.toUpperCase()}`,
+        currentUsage: usage?.aiGenerations.current || 0,
+        limit: usage?.aiGenerations.limit || 0,
+        plan: plan || 'free',
+        upgrade: {
+          message: plan === 'free' 
+            ? 'Faça upgrade para o Premium e tenha 20 gerações por mês'
+            : 'Faça upgrade para o Pro e tenha gerações ilimitadas',
+          availablePlans: plan === 'free' ? ['premium', 'pro'] : ['pro'],
+        },
+      });
+      setShowLimitModal(true);
       return;
     }
 
@@ -180,7 +233,11 @@ export const GenerateScreen = ({ navigation }: any) => {
     try {
       console.log('📡 Chamando API para gerar roteiro...');
       const itinerary = await itineraryService.generateWithAI({
-        destination: { city, country },
+        destination: { 
+          city, 
+          country,
+          coverImage: coverImage || getCoverImageForDestination(city, country)
+        },
         startDate: startISO,
         endDate: endISO,
         budget: { level: budgetLevel, currency: 'BRL' },
@@ -199,27 +256,34 @@ export const GenerateScreen = ({ navigation }: any) => {
         });
       }, 500);
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Erro ao gerar roteiro. Tente novamente.');
+      console.error('❌ Erro ao gerar roteiro:', err);
+      console.error('Response:', err.response?.data);
+      
+      // Capturar erro 403 de limite atingido
+      if (err.response?.status === 403 && err.response?.data?.error === 'limit_reached') {
+        setLimitError(err.response.data);
+        setShowLimitModal(true);
+      } else {
+        showError(err.response?.data?.message || 'Erro ao gerar roteiro. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, city, country, validateDates, startDate, endDate, budgetLevel, travelStyle, coverImage, success, navigation, showError, canUseAI, usage, plan]);
 
-  const duration = calculateDuration();
-
-  const budgetOptions = [
+  const budgetOptions = useMemo(() => [
     { value: 'economico', label: 'Econômico', icon: '💰' },
     { value: 'medio', label: 'Médio', icon: '💳' },
     { value: 'luxo', label: 'Luxo', icon: '💎' },
-  ];
+  ], []);
 
-  const styleOptions = [
+  const styleOptions = useMemo(() => [
     { value: 'solo', label: 'Solo', icon: '🚶' },
     { value: 'casal', label: 'Casal', icon: '💑' },
     { value: 'familia', label: 'Família', icon: '👨‍👩‍👧‍👦' },
     { value: 'amigos', label: 'Amigos', icon: '👥' },
     { value: 'mochileiro', label: 'Mochileiro', icon: '🎒' },
-  ];
+  ], []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
@@ -249,6 +313,9 @@ export const GenerateScreen = ({ navigation }: any) => {
               onPlaceSelected={(details) => {
                 setCity(details.city);
                 setCountry(details.country);
+                // Usar photo do Google Places se disponível, senão Unsplash
+                const image = details.photoUrl || getCoverImageForDestination(details.city, details.country);
+                setCoverImage(image);
               }}
             />
             <View style={styles.manualInputs}>
@@ -287,12 +354,12 @@ export const GenerateScreen = ({ navigation }: any) => {
               error={dateErrors.end}
             />
             {/* Preview de duração */}
-            {duration !== null && duration > 0 && !dateErrors.start && !dateErrors.end && (
+            {calculatedDuration !== null && calculatedDuration > 0 && !dateErrors.start && !dateErrors.end && (
               <View style={[styles.durationPreview, { backgroundColor: colors.primary + '15' }]}> 
                 <Text style={styles.durationIcon}>📅</Text>
                 <View style={styles.durationTextContainer}>
                   <Text style={[styles.durationText, { color: colors.primary }]}> 
-                    {duration} {duration === 1 ? 'dia' : 'dias'} de viagem
+                    {calculatedDuration} {calculatedDuration === 1 ? 'dia' : 'dias'} de viagem
                   </Text>
                   {startDate && endDate && validateDate(startDate) && validateDate(endDate) && (
                     <Text style={[styles.durationDates, { color: colors.textSecondary }]}> 
@@ -368,8 +435,32 @@ export const GenerateScreen = ({ navigation }: any) => {
             visible={toast.visible}
             onHide={hideToast}
           />
+          <Tooltip
+            visible={showAITooltip}
+            message="🤖 Preencha os dados da viagem e clique em 'Gerar roteiro com IA' para criar um roteiro completo em segundos!"
+            position="center"
+            onClose={() => {
+              setShowAITooltip(false);
+              markTooltipAsShown('useAI');
+            }}
+            buttonText="Entendi!"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal de Limite de IA Atingido */}
+      {limitError && (
+        <LimitModal
+          visible={showLimitModal}
+          onClose={() => setShowLimitModal(false)}
+          limitError={limitError}
+          onUpgrade={() => {
+            setShowLimitModal(false);
+            navigation.navigate('Pricing');
+          }}
+          currentPlan={plan || 'free'}
+        />
+      )}
     </SafeAreaView>
   );
 };

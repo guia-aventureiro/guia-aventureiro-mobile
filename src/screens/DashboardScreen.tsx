@@ -1,5 +1,3 @@
-// Importa utilitário de formatação BRL
-import { formatBRL } from '../components/Input';
 // mobile/src/screens/DashboardScreen.tsx
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,7 +18,8 @@ import {
   Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { itineraryService } from '../services/itineraryService';
 import { offlineService } from '../services/offlineService';
 import { ItineraryCard } from '../components/ItineraryCard';
@@ -29,13 +28,25 @@ import { ErrorState } from '../components/ErrorState';
 import { Toast } from '../components/Toast';
 import { OfflineIndicator } from '../components/OfflineIndicator';
 import { useToast } from '../hooks/useToast';
+import { useTooltip } from '../hooks/useTooltip';
 import { useColors } from '../hooks/useColors';
+import { formatBRL } from '../components/Input';
+import { Tooltip } from '../components/Tooltip';
+import { LimitModal } from '../components/LimitModal';
+import { AdBanner } from '../components/AdBanner';
+import { useCanPerformAction, useMySubscription } from '../hooks/useSubscription';
+import { LimitError } from '../types/subscription';
 import { Itinerary } from '../types';
 
 export const DashboardScreen = ({ navigation }: any) => {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const colors = useColors();
   const { toast, showToast, hideToast, success, error } = useToast();
+  const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
+  const { canCreateItinerary, usage, plan } = useCanPerformAction();
+  const { data: subscriptionData } = useMySubscription();
+  
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [filteredItineraries, setFilteredItineraries] = useState<Itinerary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +54,13 @@ export const DashboardScreen = ({ navigation }: any) => {
   const [hasError, setHasError] = useState(false);
   const isLoadingRef = useRef(false);
   const lastLoadTime = useRef(0);
+
+  // Limit Modal
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitError, setLimitError] = useState<LimitError | null>(null);
+
+  // Tooltip
+  const [showCreateTooltip, setShowCreateTooltip] = useState(false);
 
   // Filtros
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,6 +137,16 @@ export const DashboardScreen = ({ navigation }: any) => {
     }, [user, loadItineraries])
   );
 
+  // Mostrar tooltip para criar primeiro roteiro
+  useEffect(() => {
+    if (!loading && itineraries.length === 0 && shouldShowTooltip('createItinerary')) {
+      const timer = setTimeout(() => {
+        setShowCreateTooltip(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, itineraries.length, shouldShowTooltip]);
+
   const applyFilters = useCallback(() => {
     let filtered = [...itineraries];
 
@@ -155,6 +183,30 @@ export const DashboardScreen = ({ navigation }: any) => {
     applyFilters();
   }, [itineraries, searchQuery, statusFilter, sortBy]); // Dependências diretas
 
+  const handleCreateItinerary = () => {
+    // Verificar limite antes de navegar
+    const can = canCreateItinerary();
+    
+    if (can === false) {
+      setLimitError({
+        error: 'limit_reached',
+        message: `Você atingiu o limite de ${usage?.itineraries.limit} roteiros do plano ${plan?.toUpperCase()}`,
+        currentUsage: usage?.itineraries.current || 0,
+        limit: usage?.itineraries.limit || 0,
+        plan: plan || 'free',
+        upgrade: {
+          message: 'Faça upgrade para criar mais roteiros',
+          availablePlans: plan === 'free' ? ['premium', 'pro'] : ['pro'],
+        },
+      });
+      setShowLimitModal(true);
+      return;
+    }
+    
+    // Prosseguir com criação
+    navigation.navigate('Generate');
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadItineraries();
@@ -174,7 +226,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       {!searchQuery && !statusFilter && (
         <TouchableOpacity
           style={[styles.createButton, { backgroundColor: colors.primary }]}
-          onPress={() => navigation.navigate('Generate')}
+          onPress={handleCreateItinerary}
         >
           <Text style={[styles.createButtonText, { color: '#FFFFFF' }]}>Criar roteiro</Text>
         </TouchableOpacity>
@@ -246,18 +298,10 @@ export const DashboardScreen = ({ navigation }: any) => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={{ flex: 1 }}>
             <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-              <View>
-                <Text style={[styles.greeting, { color: colors.text }]}>Olá, {user?.name}! 👋</Text>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  {filteredItineraries.length} {filteredItineraries.length === 1 ? 'roteiro' : 'roteiros'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.primary }]}
-                onPress={() => navigation.navigate('Generate')}
-              >
-                <Text style={[styles.addButtonText, { color: '#FFFFFF' }]}>+</Text>
-              </TouchableOpacity>
+              <Text style={[styles.greeting, { color: colors.text }]}>Olá, {user?.name}! 👋</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                {filteredItineraries.length} {filteredItineraries.length === 1 ? 'roteiro' : 'roteiros'}
+              </Text>
             </View>
 
       {/* Busca */}
@@ -336,6 +380,7 @@ export const DashboardScreen = ({ navigation }: any) => {
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
+        indicatorStyle={theme === 'dark' ? 'white' : 'black'}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -402,9 +447,37 @@ export const DashboardScreen = ({ navigation }: any) => {
         visible={toast.visible}
         onHide={hideToast}
       />
+
+      {/* Tooltip para criar primeiro roteiro */}
+      <Tooltip
+        visible={showCreateTooltip}
+        message="👋 Toque em 'Criar' para gerar seu primeiro roteiro com IA em segundos!"
+        position="center"
+        onClose={() => {
+          setShowCreateTooltip(false);
+          markTooltipAsShown('createItinerary');
+        }}
+        buttonText="Entendi!"
+      />
+
+      {/* Modal de Limite Atingido */}
+      {limitError && (
+        <LimitModal
+          visible={showLimitModal}
+          onClose={() => setShowLimitModal(false)}
+          limitError={limitError}
+          onUpgrade={() => {
+            setShowLimitModal(false);
+            navigation.navigate('Pricing');
+          }}
+          currentPlan={plan || 'free'}
+        />
+      )}
           </View>
         </TouchableWithoutFeedback>
       </View>
+      
+      <AdBanner onUpgradePress={() => navigation.navigate('Pricing')} />
     </SafeAreaView>
   );
 };
@@ -419,20 +492,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 16,
     paddingTop: 20,
     borderBottomWidth: 1,
+    alignItems: 'center',
   },
   greeting: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 13,
     marginTop: 2,
+    textAlign: 'center',
   },
   addButton: {
     width: 44,

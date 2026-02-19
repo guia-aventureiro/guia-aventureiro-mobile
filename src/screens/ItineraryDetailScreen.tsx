@@ -1,5 +1,5 @@
 // mobile/src/screens/ItineraryDetailScreen.tsx
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,9 @@ import { RatingStars } from '../components/RatingStars';
 import { RatingModal } from '../components/RatingModal';
 import { ShareModal } from '../components/ShareModal';
 import { BudgetTracker } from '../components/BudgetTracker';
+import { useAuth } from '../contexts/AuthContext';
+import { Tooltip } from '../components/Tooltip';
+import { useTooltip } from '../hooks/useTooltip';
 // Utilitário para formatar valores em Real brasileiro
 function formatBRL(value: number | string) {
   let num = typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
@@ -31,15 +34,562 @@ function formatBRL(value: number | string) {
 }
 import budgetService from '../services/budgetService';
 
+// ========== DADOS MOCKADOS PARA PREVIEW ==========
+const getMockItinerary = (id: string): Itinerary | null => {
+  const mockItineraries: Record<string, Itinerary> = {
+    'mock-1': {
+      _id: 'mock-1',
+      title: 'Explorando Paris em 5 Dias',
+      destination: {
+        city: 'Paris',
+        country: 'França',
+        coverImage: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=200&fit=crop'
+      },
+      startDate: '2026-06-15',
+      endDate: '2026-06-20',
+      duration: 5,
+      owner: {
+        _id: 'user-1',
+        name: 'Ana Silva',
+        email: 'ana.silva@email.com',
+        isPremium: false,
+        createdAt: '2025-01-01T00:00:00Z'
+      },
+      budget: {
+        level: 'medio',
+        estimatedTotal: 5000,
+        currency: 'BRL',
+        spent: 2340
+      },
+      preferences: {
+        interests: ['cultura', 'gastronomia'],
+        travelStyle: 'casal',
+        pace: 'moderado'
+      },
+      days: [
+        {
+          _id: 'day-1',
+          date: '2026-06-15',
+          dayNumber: 1,
+          title: 'Chegada e Torre Eiffel',
+          activities: [
+            {
+              _id: 'act-1',
+              time: '14:00',
+              title: 'Check-in no hotel',
+              description: 'Hotel Le Marais - próximo ao metrô',
+              location: { name: 'Le Marais', address: 'Rue des Archives, 75004 Paris' },
+              category: 'acomodacao',
+              duration: 60,
+              cost: 450,
+              isCompleted: false
+            },
+            {
+              _id: 'act-2',
+              time: '17:00',
+              title: 'Torre Eiffel',
+              description: 'Subir até o topo para ver o pôr do sol',
+              location: { name: 'Torre Eiffel', address: 'Champ de Mars, 75007 Paris' },
+              category: 'atracao',
+              duration: 180,
+              cost: 85,
+              isCompleted: false
+            },
+            {
+              _id: 'act-3',
+              time: '20:30',
+              title: 'Jantar no Bistrot Paul Bert',
+              description: 'Restaurante tradicional francês',
+              location: { name: 'Bistrot Paul Bert', address: '18 Rue Paul Bert, 75011 Paris' },
+              category: 'refeicao',
+              duration: 120,
+              cost: 180,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 715,
+          notes: 'Comprar Paris Museum Pass'
+        },
+        {
+          _id: 'day-2',
+          date: '2026-06-16',
+          dayNumber: 2,
+          title: 'Museus e Montmartre',
+          activities: [
+            {
+              _id: 'act-4',
+              time: '09:00',
+              title: 'Museu do Louvre',
+              description: 'Ver Mona Lisa e principais obras',
+              location: { name: 'Museu do Louvre', address: 'Rue de Rivoli, 75001 Paris' },
+              category: 'atracao',
+              duration: 240,
+              cost: 0,
+              isCompleted: false
+            },
+            {
+              _id: 'act-5',
+              time: '15:00',
+              title: 'Basílica de Sacré-Cœur',
+              description: 'Vista panorâmica de Paris',
+              location: { name: 'Sacré-Cœur', address: '35 Rue du Chevalier de la Barre, 75018 Paris' },
+              category: 'atracao',
+              duration: 120,
+              cost: 0,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 150
+        }
+      ],
+      collaborators: [],
+      status: 'confirmado',
+      generatedByAI: false,
+      isPublic: true,
+      likes: [],
+      views: 1543,
+      expenses: [
+        { _id: 'exp-1', category: 'transporte', description: 'Passagem aérea', amount: 1800, date: '2026-05-01', createdAt: '2026-05-01T10:00:00Z' },
+        { _id: 'exp-2', category: 'acomodacao', description: 'Hotel 5 noites', amount: 2250, date: '2026-05-15', createdAt: '2026-05-15T14:00:00Z' }
+      ],
+      createdAt: '2026-01-15T10:00:00Z',
+      updatedAt: '2026-02-08T14:30:00Z'
+    },
+    'mock-2': {
+      _id: 'mock-2',
+      title: 'Aventura na Patagônia',
+      destination: {
+        city: 'El Calafate',
+        country: 'Argentina',
+        coverImage: 'https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=400&h=200&fit=crop'
+      },
+      startDate: '2026-07-10',
+      endDate: '2026-07-17',
+      duration: 7,
+      owner: {
+        _id: 'user-2',
+        name: 'Carlos Mendes',
+        email: 'carlos.mendes@email.com',
+        isPremium: true,
+        createdAt: '2025-02-01T00:00:00Z'
+      },
+      budget: {
+        level: 'medio',
+        estimatedTotal: 8000,
+        currency: 'BRL',
+        spent: 3200
+      },
+      preferences: {
+        interests: ['aventura', 'natureza'],
+        travelStyle: 'amigos',
+        pace: 'intenso'
+      },
+      days: [
+        {
+          _id: 'day-p1',
+          date: '2026-07-10',
+          dayNumber: 1,
+          title: 'Chegada em El Calafate',
+          activities: [
+            {
+              _id: 'act-p1',
+              time: '10:00',
+              title: 'Chegada ao aeroporto',
+              description: 'Voo de Buenos Aires para El Calafate',
+              location: { name: 'Aeroporto El Calafate', address: 'Ruta Provincial 11, El Calafate' },
+              category: 'transporte',
+              duration: 180,
+              cost: 800,
+              isCompleted: false
+            },
+            {
+              _id: 'act-p2',
+              time: '14:00',
+              title: 'Check-in Hosteria',
+              description: 'Acomodação com vista para o lago Argentino',
+              location: { name: 'Hosteria Kalenshen', address: 'Av. Libertador 1090, El Calafate' },
+              category: 'acomodacao',
+              duration: 60,
+              cost: 600,
+              isCompleted: false
+            },
+            {
+              _id: 'act-p3',
+              time: '16:00',
+              title: 'Passeio pela cidade',
+              description: 'Conhecer o centro e comprar equipamentos',
+              location: { name: 'Centro El Calafate', address: 'Av. del Libertador' },
+              category: 'passeio',
+              duration: 180,
+              cost: 0,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 1400
+        },
+        {
+          _id: 'day-p2',
+          date: '2026-07-11',
+          dayNumber: 2,
+          title: 'Glaciar Perito Moreno',
+          activities: [
+            {
+              _id: 'act-p4',
+              time: '08:00',
+              title: 'Tour Glaciar Perito Moreno',
+              description: 'Dia completo visitando o glaciar com passarelas',
+              location: { name: 'Parque Nacional Los Glaciares', address: 'RP11, El Calafate' },
+              category: 'atracao',
+              duration: 480,
+              cost: 450,
+              isCompleted: false
+            },
+            {
+              _id: 'act-p5',
+              time: '19:00',
+              title: 'Jantar típico argentino',
+              description: 'Cordeiro patagônico',
+              location: { name: 'La Tablita', address: 'Coronel Rosales 28, El Calafate' },
+              category: 'refeicao',
+              duration: 120,
+              cost: 220,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 670
+        },
+        {
+          _id: 'day-p3',
+          date: '2026-07-12',
+          dayNumber: 3,
+          title: 'Trekking em Torres del Paine',
+          activities: [
+            {
+              _id: 'act-p6',
+              time: '06:00',
+              title: 'Trilha Base Las Torres',
+              description: 'Trekking de 8h até a base das torres',
+              location: { name: 'Torres del Paine', address: 'Parque Nacional Torres del Paine, Chile' },
+              category: 'aventura',
+              duration: 480,
+              cost: 380,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 380,
+          notes: 'Levar lanche e água. Acordar cedo!'
+        }
+      ],
+      collaborators: [],
+      status: 'planejando',
+      generatedByAI: true,
+      isPublic: true,
+      likes: [],
+      views: 2891,
+      expenses: [
+        { _id: 'exp-p1', category: 'transporte', description: 'Passagens aéreas', amount: 2400, date: '2026-06-01', createdAt: '2026-06-01T10:00:00Z' },
+        { _id: 'exp-p2', category: 'acomodacao', description: 'Hosteria 7 noites', amount: 4200, date: '2026-06-15', createdAt: '2026-06-15T14:00:00Z' }
+      ],
+      createdAt: '2026-01-20T08:15:00Z',
+      updatedAt: '2026-02-09T11:20:00Z'
+    },
+    'mock-3': {
+      _id: 'mock-3',
+      title: 'Roteiro Gastronômico em Tóquio',
+      destination: {
+        city: 'Tóquio',
+        country: 'Japão',
+        coverImage: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop'
+      },
+      startDate: '2026-05-01',
+      endDate: '2026-05-06',
+      duration: 5,
+      owner: {
+        _id: 'user-3',
+        name: 'Marina Kobayashi',
+        email: 'marina.k@email.com',
+        isPremium: false,
+        createdAt: '2025-03-01T00:00:00Z'
+      },
+      budget: {
+        level: 'medio',
+        estimatedTotal: 6000,
+        currency: 'BRL',
+        spent: 1800
+      },
+      preferences: {
+        interests: ['gastronomia', 'cultura'],
+        travelStyle: 'solo',
+        pace: 'moderado'
+      },
+      days: [
+        {
+          _id: 'day-t1',
+          date: '2026-05-01',
+          dayNumber: 1,
+          title: 'Chegada e Shibuya',
+          activities: [
+            {
+              _id: 'act-t1',
+              time: '15:00',
+              title: 'Check-in capsule hotel',
+              description: 'Hotel cápsula em Shinjuku',
+              location: { name: 'Nine Hours Shinjuku', address: '3-10-2 Shinjuku, Shinjuku-ku' },
+              category: 'acomodacao',
+              duration: 60,
+              cost: 180,
+              isCompleted: false
+            },
+            {
+              _id: 'act-t2',
+              time: '18:00',
+              title: 'Shibuya Crossing',
+              description: 'Cruzamento mais famoso do mundo',
+              location: { name: 'Shibuya Crossing', address: 'Shibuya, Tokyo' },
+              category: 'atracao',
+              duration: 90,
+              cost: 0,
+              isCompleted: false
+            },
+            {
+              _id: 'act-t3',
+              time: '20:00',
+              title: 'Jantar ramen tradicional',
+              description: 'Ichiran Ramen - experiência autêntica',
+              location: { name: 'Ichiran Shibuya', address: '1-22-7 Jinnan, Shibuya-ku' },
+              category: 'refeicao',
+              duration: 60,
+              cost: 80,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 260
+        },
+        {
+          _id: 'day-t2',
+          date: '2026-05-02',
+          dayNumber: 2,
+          title: 'Mercado Tsukiji e Sushi',
+          activities: [
+            {
+              _id: 'act-t4',
+              time: '06:00',
+              title: 'Mercado Tsukiji',
+              description: 'Café da manhã no mercado de peixes',
+              location: { name: 'Toyosu Market', address: '6-6-2 Toyosu, Koto-ku' },
+              category: 'atracao',
+              duration: 180,
+              cost: 120,
+              isCompleted: false
+            },
+            {
+              _id: 'act-t5',
+              time: '12:00',
+              title: 'Aula de sushi',
+              description: 'Workshop prático de fazer sushi',
+              location: { name: 'Tokyo Sushi Academy', address: 'Shinjuku, Tokyo' },
+              category: 'atividade',
+              duration: 180,
+              cost: 350,
+              isCompleted: false
+            },
+            {
+              _id: 'act-t6',
+              time: '19:00',
+              title: 'Izakaya experience',
+              description: 'Bar japonês tradicional',
+              location: { name: 'Omoide Yokocho', address: 'Shinjuku, Tokyo' },
+              category: 'refeicao',
+              duration: 120,
+              cost: 150,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 620,
+          notes: 'Acordar cedo para pegar o mercado!'
+        }
+      ],
+      collaborators: [],
+      status: 'confirmado',
+      generatedByAI: false,
+      isPublic: true,
+      likes: ['user'],
+      views: 1234,
+      expenses: [
+        { _id: 'exp-t1', category: 'transporte', description: 'Passagem aérea', amount: 3500, date: '2026-03-01', createdAt: '2026-03-01T10:00:00Z' }
+      ],
+      createdAt: '2026-02-01T12:00:00Z',
+      updatedAt: '2026-02-09T16:45:00Z'
+    },
+    'mock-4': {
+      _id: 'mock-4',
+      title: 'Praias Paradisíacas do Caribe',
+      destination: {
+        city: 'Tulum',
+        country: 'México',
+        coverImage: 'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=400&h=200&fit=crop'
+      },
+      startDate: '2026-08-20',
+      endDate: '2026-08-27',
+      duration: 7,
+      owner: {
+        _id: 'user-4',
+        name: 'Pedro Santos',
+        email: 'pedro.santos@email.com',
+        isPremium: true,
+        createdAt: '2024-12-01T00:00:00Z'
+      },
+      budget: {
+        level: 'luxo',
+        estimatedTotal: 12000,
+        currency: 'BRL',
+        spent: 5600
+      },
+      preferences: {
+        interests: ['praia', 'mergulho'],
+        travelStyle: 'casal',
+        pace: 'relaxado'
+      },
+      days: [
+        {
+          _id: 'day-c1',
+          date: '2026-08-20',
+          dayNumber: 1,
+          title: 'Chegada em Tulum',
+          activities: [
+            {
+              _id: 'act-c1',
+              time: '12:00',
+              title: 'Check-in resort',
+              description: 'Resort all-inclusive na praia',
+              location: { name: 'Dreams Tulum', address: 'Carretera Tulum-Boca Paila Km 7' },
+              category: 'acomodacao',
+              duration: 60,
+              cost: 1200,
+              isCompleted: false
+            },
+            {
+              _id: 'act-c2',
+              time: '16:00',
+              title: 'Praia do hotel',
+              description: 'Relaxar e curtir o mar caribenho',
+              location: { name: 'Praia Dreams Tulum', address: 'Tulum Beach' },
+              category: 'praia',
+              duration: 180,
+              cost: 0,
+              isCompleted: false
+            },
+            {
+              _id: 'act-c3',
+              time: '20:00',
+              title: 'Jantar mexicano',
+              description: 'Restaurante à beira-mar',
+              location: { name: 'Hartwood', address: 'Tulum Beach Road' },
+              category: 'refeicao',
+              duration: 120,
+              cost: 450,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 1650
+        },
+        {
+          _id: 'day-c2',
+          date: '2026-08-21',
+          dayNumber: 2,
+          title: 'Ruínas Maias e Cenote',
+          activities: [
+            {
+              _id: 'act-c4',
+              time: '08:00',
+              title: 'Ruínas de Tulum',
+              description: 'Sítio arqueológico com vista para o mar',
+              location: { name: 'Zona Arqueológica de Tulum', address: 'Carretera Federal, Tulum' },
+              category: 'atracao',
+              duration: 180,
+              cost: 180,
+              isCompleted: false
+            },
+            {
+              _id: 'act-c5',
+              time: '14:00',
+              title: 'Mergulho no Gran Cenote',
+              description: 'Snorkel em águas cristalinas',
+              location: { name: 'Gran Cenote', address: 'Carretera Tulum-Cobá Km 4' },
+              category: 'aventura',
+              duration: 180,
+              cost: 280,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 460,
+          notes: 'Levar protetor solar biodegradável'
+        },
+        {
+          _id: 'day-c3',
+          date: '2026-08-22',
+          dayNumber: 3,
+          title: 'Mergulho com Tartarugas',
+          activities: [
+            {
+              _id: 'act-c6',
+              time: '07:00',
+              title: 'Tour Akumal',
+              description: 'Nadar com tartarugas marinhas',
+              location: { name: 'Akumal Bay', address: 'Akumal, Quintana Roo' },
+              category: 'aventura',
+              duration: 300,
+              cost: 520,
+              isCompleted: false
+            }
+          ],
+          dailyBudget: 520
+        }
+      ],
+      collaborators: [],
+      status: 'confirmado',
+      generatedByAI: false,
+      isPublic: true,
+      likes: [],
+      views: 4567,
+      expenses: [
+        { _id: 'exp-c1', category: 'transporte', description: 'Passagens aéreas', amount: 3200, date: '2026-07-01', createdAt: '2026-07-01T10:00:00Z' },
+        { _id: 'exp-c2', category: 'acomodacao', description: 'Resort all-inclusive', amount: 8400, date: '2026-07-15', createdAt: '2026-07-15T14:00:00Z' }
+      ],
+      createdAt: '2026-01-10T09:30:00Z',
+      updatedAt: '2026-02-10T08:15:00Z'
+    }
+  };
+
+  return mockItineraries[id] || null;
+};
+// ================================================
+
 export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const { id, refresh } = route.params;
   const colors = useColors();
+  const { user } = useAuth();
   const { toast, hideToast, success, error: showError } = useToast();
+  const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(true);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [showBudgetTooltip, setShowBudgetTooltip] = useState(false);
   const isLoadingRef = useRef(false);
+
+  // Verificar permissões do usuário
+  const { isOwner, isMockPreview, isPublicPreview } = useMemo(() => {
+    const _isMockPreview = id.startsWith('mock-');
+    const _isOwner = user && itinerary?.owner && itinerary.owner._id === user._id;
+    const _isPublicPreview = !_isOwner && !_isMockPreview;
+    
+    return {
+      isOwner: _isOwner,
+      isMockPreview: _isMockPreview,
+      isPublicPreview: _isPublicPreview
+    };
+  }, [id, user, itinerary]);
 
   // Carregar roteiro quando a tela ganhar foco
   useFocusEffect(
@@ -57,6 +607,29 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         try {
           setLoading(true);
           console.log('📥 Carregando roteiro ID:', id);
+          
+          // Validar se ID existe
+          if (!id) {
+            throw new Error('ID do roteiro não fornecido');
+          }
+          
+          // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
+          if (id.startsWith('mock-')) {
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay
+            const mockData = getMockItinerary(id);
+            
+            if (mockData && isMounted) {
+              console.log('✅ Roteiro mockado carregado:', mockData._id);
+              setItinerary(mockData);
+              setLoading(false);
+              isLoadingRef.current = false;
+              return;
+            } else {
+              throw new Error('Roteiro mockado não encontrado');
+            }
+          }
+          // ===================================================================
+          
           const data = await itineraryService.getById(id);
           
           if (isMounted) {
@@ -67,7 +640,27 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         } catch (error) {
           if (isMounted) {
             console.error('❌ Erro ao carregar roteiro:', error);
-            showError('Não foi possível carregar o roteiro.');
+            
+            // Log detalhado do erro
+            if (error instanceof Error) {
+              console.error('Mensagem:', error.message);
+            }
+            if ((error as any)?.response) {
+              console.error('Status:', (error as any).response?.status);
+              console.error('Data:', (error as any).response?.data);
+            }
+            
+            // Mensagem específica baseada no erro
+            let errorMessage = 'Não foi possível carregar o roteiro.';
+            if ((error as any)?.response?.status === 400) {
+              errorMessage = 'ID do roteiro inválido.';
+            } else if ((error as any)?.response?.status === 404) {
+              errorMessage = 'Roteiro não encontrado.';
+            } else if ((error as any)?.response?.status === 401) {
+              errorMessage = 'Você não tem permissão para ver este roteiro.';
+            }
+            
+            showError(errorMessage);
             setLoading(false);
             setTimeout(() => {
               navigation.goBack();
@@ -92,6 +685,19 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const loadItinerary = useCallback(async () => {
     try {
       console.log('📥 Recarregando roteiro ID:', id);
+      
+      // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
+      if (id.startsWith('mock-')) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const mockData = getMockItinerary(id);
+        if (mockData) {
+          console.log('✅ Roteiro mockado recarregado:', mockData._id);
+          setItinerary(mockData);
+          return;
+        }
+      }
+      // ===================================================================
+      
       const data = await itineraryService.getById(id);
       console.log('✅ Roteiro recarregado:', data._id);
       setItinerary(data);
@@ -99,9 +705,29 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       console.error('❌ Erro ao recarregar roteiro:', error);
       showError('Não foi possível carregar o roteiro.');
     }
-  }, []);
+  }, [id]);
+
+  // Tooltip para orçamento
+  useEffect(() => {
+    if (!loading && itinerary && !isMockPreview && isOwner && shouldShowTooltip('budget')) {
+      const timer = setTimeout(() => {
+        setShowBudgetTooltip(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, itinerary, isMockPreview, isOwner, shouldShowTooltip]);
 
   const handleDelete = async () => {
+    // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
+    if (isMockPreview) {
+      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo. Crie seus próprios roteiros para editá-los!');
+      return;
+    }
+    if (!isOwner) {
+      showAlert('Sem Permissão', 'Apenas o criador do roteiro pode excluí-lo.');
+      return;
+    }
+    
     console.log('🗑️ Botão de deletar clicado. ID:', id);
     showAlert(
       'Excluir Roteiro',
@@ -131,6 +757,13 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleDuplicate = async () => {
+    // Prevenir ações em roteiros mockados
+    if (isMockPreview) {
+      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo. Use o botão "Usar este Roteiro" para adicioná-lo!');
+      return;
+    }
+    // Permitir duplicar roteiros de outros usuários (isOwner pode ser false)
+    
     console.log('📋 Botão de duplicar clicado. ID:', id);
     try {
       console.log('🔄 Duplicando roteiro:', id);
@@ -165,6 +798,11 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     comment: string;
     photos: string[];
   }) => {
+    // Prevenir ações em roteiros mockados
+    if (isMockPreview) {
+      throw new Error('Este é um roteiro de demonstração.');
+    }
+    
     try {
       await itineraryService.addRating(id, ratingData);
       success('Avaliação salva com sucesso!');
@@ -180,6 +818,14 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     amount: number;
     date?: Date;
   }) => {
+    // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
+    if (isMockPreview) {
+      throw new Error('Este é um roteiro de demonstração.');
+    }
+    if (!isOwner) {
+      throw new Error('Apenas o criador do roteiro pode adicionar gastos.');
+    }
+    
     try {
       await budgetService.addExpense(id, expenseData);
       success('Gasto adicionado com sucesso!');
@@ -190,6 +836,14 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleUpdateExpense = async (expenseId: string, data: any) => {
+    // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
+    if (isMockPreview) {
+      throw new Error('Este é um roteiro de demonstração.');
+    }
+    if (!isOwner) {
+      throw new Error('Apenas o criador do roteiro pode editar gastos.');
+    }
+    
     try {
       await budgetService.updateExpense(id, expenseId, data);
       success('Gasto atualizado com sucesso!');
@@ -200,12 +854,63 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
+    // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
+    if (isMockPreview) {
+      throw new Error('Este é um roteiro de demonstração.');
+    }
+    if (!isOwner) {
+      throw new Error('Apenas o criador do roteiro pode remover gastos.');
+    }
+    
     try {
       await budgetService.deleteExpense(id, expenseId);
       success('Gasto removido com sucesso!');
       await loadItinerary();
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao remover gasto');
+    }
+  };
+
+  const handleEdit = () => {
+    // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
+    if (isMockPreview) {
+      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo. Use o botão "Usar este Roteiro" para adicioná-lo!');
+      return;
+    }
+    if (!isOwner) {
+      showAlert('Sem Permissão', 'Apenas o criador do roteiro pode editá-lo.');
+      return;
+    }
+    navigation.navigate('EditItinerary', { id: itinerary?._id });
+  };
+
+  const handleShare = () => {
+    // Prevenir ações em roteiros mockados
+    if (isMockPreview) {
+      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo.');
+      return;
+    }
+    setShareModalVisible(true);
+  };
+
+  const handleUseItinerary = async () => {
+    // Prevenir usar roteiros mockados
+    if (isMockPreview) {
+      showAlert('Roteiro de Demonstração', 'Roteiros de demonstração não podem ser copiados. Explore os roteiros públicos para encontrar inspiração!');
+      return;
+    }
+    
+    try {
+      console.log('🔄 Usando roteiro (duplicando):', id);
+      const duplicate = await itineraryService.duplicate(id);
+      console.log('✅ Roteiro duplicado com sucesso. Novo ID:', duplicate._id);
+      success('Roteiro adicionado aos seus roteiros!');
+      
+      // Navegar para o roteiro duplicado onde poderá editar
+      navigation.replace('ItineraryDetail', { id: duplicate._id });
+    } catch (error: any) {
+      console.error('❌ Erro ao usar roteiro:', error);
+      showError(error.response?.data?.message || 'Não foi possível adicionar o roteiro.');
     }
   };
 
@@ -231,36 +936,57 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       <ScrollView style={styles.content}>
         {/* Hero com botões integrados */}
         <View style={[styles.hero, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          {/* Linha com seta voltar e botões de ação */}
-          <View style={styles.heroHeader}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButtonHero}
-            >
-              <Text style={[styles.backButtonTextHero, { color: colors.text }]}>‹</Text>
-            </TouchableOpacity>
-            
-            <View style={styles.headerActions}>
-              <TouchableOpacity onPress={() => setShareModalVisible(true)} style={styles.iconButton}>
-                <Text style={styles.iconButtonText}>🔗</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('EditItinerary', { id: itinerary._id })}
-                style={styles.iconButton}
-              >
-                <Text style={styles.iconButtonText}>✏️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleDuplicate} style={styles.iconButton}>
-                <Text style={styles.iconButtonText}>📋</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} style={styles.iconButton}>
-                <Text style={styles.iconButtonText}>🗑️</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {isOwner ? (
+            <>
+              {/* Layout para proprietário: seta voltar separada + botões de ação */}
+              <View style={styles.heroHeader}>
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButtonHero}
+                >
+                  <Text style={[styles.backButtonTextHero, { color: colors.text }]}>‹</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.headerActions}>
+                  <TouchableOpacity onPress={handleShare} style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>🔗</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleEdit}
+                    style={styles.iconButton}
+                  >
+                    <Text style={styles.iconButtonText}>✏️</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleDuplicate} style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>📋</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleDelete} style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-          {/* Informações do roteiro */}
-          <Text style={[styles.title, { color: colors.text }]}>{itinerary.title}</Text>
+              {/* Informações do roteiro */}
+              <Text style={[styles.title, { color: colors.text }]}>{itinerary.title}</Text>
+            </>
+          ) : (
+            <>
+              {/* Layout para preview: seta voltar junto com título */}
+              <View style={styles.titleWithBack}>
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButtonInline}
+                >
+                  <Text style={[styles.backButtonTextInline, { color: colors.text }]}>‹</Text>
+                </TouchableOpacity>
+                <Text style={[styles.titleInline, { color: colors.text }]} numberOfLines={2}>
+                  {itinerary.title}
+                </Text>
+              </View>
+            </>
+          )}
+
+          {/* Resto das informações (mesmo para todos) */}
           <Text style={[styles.destination, { color: colors.textSecondary }]}>
             {itinerary.destination ? `${itinerary.destination.city || 'N/A'}, ${itinerary.destination.country || 'N/A'}` : 'Destino não informado'}
           </Text>
@@ -285,51 +1011,43 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
                 <Text style={[styles.aiText, { color: colors.text }]}>✨ IA</Text>
               </View>
             )}
+            {isMockPreview && (
+              <View style={[styles.badge, { backgroundColor: '#FF9500' }]}>
+                <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>👁️ Preview</Text>
+              </View>
+            )}
+            {isPublicPreview && (
+              <View style={[styles.badge, { backgroundColor: '#34C759' }]}>
+                <Text style={[styles.badgeText, { color: '#FFFFFF' }]}>
+                  👤 {itinerary.owner?.name || 'Público'}
+                </Text>
+              </View>
+            )}
           </View>
+
+          {/* Botão "Usar este Roteiro" para roteiros não-proprietários (mock ou públicos) */}
+          {!isOwner && (
+            <TouchableOpacity
+              onPress={handleUseItinerary}
+              style={[styles.useItineraryButton, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.useItineraryButtonText}>✨ Usar este Roteiro</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Orçamento */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Orçamento</Text>
           <BudgetTracker
             itineraryId={itinerary._id}
             budgetEstimated={itinerary.budget.estimatedTotal}
             budgetSpent={itinerary.budget.spent || 0}
             currency={itinerary.budget.currency}
             expenses={itinerary.expenses || []}
+            readOnly={!isOwner}
             onAddExpense={handleAddExpense}
             onUpdateExpense={handleUpdateExpense}
             onDeleteExpense={handleDeleteExpense}
-          />
-        </View>
-
-        {/* Fotos do roteiro */}
-        <View style={styles.section}>
-          <PhotoPicker
-            itineraryId={itinerary._id}
-            maxPhotos={10}
-            existingPhotos={itinerary.rating?.photos || []}
-            onPhotosSelected={async (photos) => {
-              try {
-                await itineraryService.update(itinerary._id, {
-                  rating: {
-                    ...itinerary.rating,
-                    photos,
-                  },
-                });
-                // Atualiza o estado local
-                setItinerary({
-                  ...itinerary,
-                  rating: {
-                    ...itinerary.rating,
-                    photos,
-                  },
-                });
-              } catch (error) {
-                console.error('Erro ao salvar fotos:', error);
-                showError('Não foi possível salvar as fotos.');
-              }
-            }}
           />
         </View>
 
@@ -457,6 +1175,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         itineraryId={id}
         itineraryTitle={itinerary?.title || ''}
         existingShareLink={itinerary?.shareLink}
+        onUpgradePress={() => navigation.navigate('Pricing')}
       />
       
       <RatingModal
@@ -464,6 +1183,8 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         onClose={() => setRatingModalVisible(false)}
         onSubmit={handleSubmitRating}
         existingRating={itinerary?.rating}
+        itineraryId={id}
+        onUpgradePress={() => navigation.navigate('Pricing')}
       />
       
       <Toast
@@ -471,6 +1192,17 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         type={toast.type}
         visible={toast.visible}
         onHide={hideToast}
+      />
+      
+      <Tooltip
+        visible={showBudgetTooltip}
+        message="💰 Acompanhe seus gastos! Adicione despesas para ter controle total do seu orçamento de viagem."
+        position="center"
+        onClose={() => {
+          setShowBudgetTooltip(false);
+          markTooltipAsShown('budget');
+        }}
+        buttonText="Entendi!"
       />
     </SafeAreaView>
   );
@@ -544,7 +1276,29 @@ const styles = StyleSheet.create({
   backButtonTextHero: {
     fontSize: 36,
     fontWeight: '300',
-  },  title: {
+  },
+  titleWithBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  backButtonInline: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonTextInline: {
+    fontSize: 36,
+    fontWeight: '300',
+  },
+  titleInline: {
+    flex: 1,
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
@@ -577,13 +1331,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  useItineraryButton: {
+    marginTop: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  useItineraryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
   section: {
     padding: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
+  },
+  viewDetailsButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  viewDetailsText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mapDescription: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   budgetCard: {
     padding: 24,

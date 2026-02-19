@@ -1,6 +1,5 @@
-import { formatBRL } from '../components/Input';
 // mobile/src/screens/AchievementsScreen.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -52,12 +51,12 @@ export const AchievementsScreen = ({ navigation }: any) => {
     }, [loadAchievements])
   );
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     loadAchievements();
-  };
+  }, [loadAchievements]);
 
-  const handleCheckAchievements = async () => {
+  const handleCheckAchievements = useCallback(async () => {
     try {
       const result = await achievementService.checkAchievements();
       if (result.newAchievements.length > 0) {
@@ -69,15 +68,19 @@ export const AchievementsScreen = ({ navigation }: any) => {
     } catch (error: any) {
       showError('Erro ao verificar conquistas');
     }
-  };
+  }, [success, loadAchievements, showError]);
 
-  const filteredAchievements = achievements.filter(a => {
-    if (filter === 'unlocked') return a.unlocked;
-    if (filter === 'locked') return !a.unlocked;
-    return true;
-  });
+  const filteredAchievements = useMemo(() => {
+    return achievements.filter(a => {
+      if (filter === 'unlocked') return a.unlocked;
+      if (filter === 'locked') return !a.unlocked;
+      return true;
+    });
+  }, [achievements, filter]);
 
-  const progressPercentage = totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0;
+  const progressPercentage = useMemo(() => {
+    return totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0;
+  }, [totalCount, unlockedCount]);
 
   if (loading) {
     return (
