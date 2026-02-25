@@ -1,5 +1,5 @@
 // mobile/src/screens/AchievementsScreen.tsx
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import { useColors } from '../hooks/useColors';
 import { BadgeItem } from '../components/BadgeItem';
 import { Toast } from '../components/Toast';
@@ -29,46 +28,51 @@ export const AchievementsScreen = ({ navigation }: any) => {
   const [totalCount, setTotalCount] = useState(0);
   const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
 
-  const loadAchievements = useCallback(async () => {
+  const loadAchievements = useCallback(async (showLoadingIndicator = false) => {
     try {
+      if (showLoadingIndicator) {
+        setLoading(true);
+      }
       const data = await achievementService.getMyAchievements();
       setAchievements(data.achievements);
       setTotalPoints(data.totalPoints);
       setUnlockedCount(data.unlockedCount);
       setTotalCount(data.totalCount);
     } catch (error: any) {
-      showError('Não foi possível carregar as conquistas');
+      console.error('Erro ao carregar conquistas:', error);
+      // Não mostrar erro no catch para evitar loops
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []); // Sem dependências para evitar loop
+  }, []);
 
-  // Recarregar conquistas sempre que a tela receber foco
-  useFocusEffect(
-    useCallback(() => {
-      loadAchievements();
-    }, [loadAchievements])
-  );
-
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadAchievements();
+  // Carregar conquistas na primeira vez que a tela é montada
+  useEffect(() => {
+    loadAchievements(true);
   }, [loadAchievements]);
 
-  const handleCheckAchievements = useCallback(async () => {
+  // NÃO recarregar automaticamente no focus - apenas quando usuário pedir
+  // useFocusEffect foi removido para evitar loops
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadAchievements(false);
+  };
+
+  const handleCheckAchievements = async () => {
     try {
       const result = await achievementService.checkAchievements();
       if (result.newAchievements.length > 0) {
-        success(`${result.newAchievements.length} nova(s) conquista(s)!`);
-        await loadAchievements();
+        showAlert('Conquistas', `${result.newAchievements.length} nova(s) conquista(s) desbloqueada(s)!`);
+        loadAchievements(false);
       } else {
         showAlert('Conquistas', 'Nenhuma nova conquista desbloqueada');
       }
     } catch (error: any) {
-      showError('Erro ao verificar conquistas');
+      showAlert('Erro', 'Erro ao verificar conquistas');
     }
-  }, [success, loadAchievements, showError]);
+  };
 
   const filteredAchievements = useMemo(() => {
     return achievements.filter(a => {

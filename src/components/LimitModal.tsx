@@ -43,35 +43,39 @@ export const LimitModal: React.FC<LimitModalProps> = ({
     return 'alert-circle';
   };
 
+  const getFriendlyMessage = () => {
+    const isMonthlyLimit = limitError.error === 'monthly_limit_reached';
+    
+    if (isMonthlyLimit) {
+      return `Você já criou ${limitError.currentUsage} roteiros este mês! Isso mostra que você está adorando planejar viagens. Faça upgrade para continuar criando sem limites! 🚀`;
+    }
+    
+    if (limitError.message.includes('roteiro')) {
+      return `Você aproveitou bem seus ${limitError.limit} roteiros do plano Gratuito! Pronto para criar ainda mais viagens incríveis? 🗺️`;
+    }
+    
+    if (limitError.message.includes('foto')) {
+      return 'Upload de fotos está disponível no plano Premium! Eternize suas memórias de viagem com fotos lindas. 📸';
+    }
+    
+    return limitError.message;
+  };
+
   const getNextPlanBenefits = () => {
     const benefits = {
       free: {
         premium: [
-          '50 roteiros/mês (vs 3)',
-          'Compartilhar roteiros publicamente',
+          '50 roteiros ativos (vs 5)',
+          'Criações ilimitadas (vs 15/mês)',
           'Upload de 20 fotos por roteiro',
+          'Compartilhar roteiros individualmente',
           'Modo offline',
           'Exportar PDF',
-          'Sem anúncios',
-        ],
-        pro: [
-          'Roteiros ilimitados (vs 3/mês)',
-          'Compartilhar roteiros publicamente',
-          'Upload de 50 fotos por roteiro',
-          'Modo offline',
-          'Exportar PDF',
-          'Suporte prioritário',
-          'Acesso antecipado a novidades',
           'Sem anúncios',
         ],
       },
       premium: {
-        pro: [
-          'Roteiros ilimitados (vs 50/mês)',
-          '50 fotos por roteiro (vs 20)',
-          'Suporte prioritário',
-          'Acesso antecipado a novidades',
-        ],
+        // Caso haja upgrade de Premium para Pro no futuro
       },
     };
 
@@ -83,22 +87,23 @@ export const LimitModal: React.FC<LimitModalProps> = ({
     if (!limitError.currentUsage || !limitError.limit) return null;
 
     const percentage = (limitError.currentUsage / limitError.limit) * 100;
+    const isAtLimit = percentage >= 100;
 
     return (
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
           <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>
-            Seu uso atual:
+            Você já usou:
           </Text>
-          <Text style={[styles.progressValue, { color: colors.error }]}>
-            {limitError.currentUsage}/{limitError.limit} (100%)
+          <Text style={[styles.progressValue, { color: isAtLimit ? colors.warning : colors.primary }]}>
+            {limitError.currentUsage}/{limitError.limit} {isAtLimit ? '✨' : ''}
           </Text>
         </View>
         <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
           <View
             style={[
               styles.progressFill,
-              { width: `${percentage}%`, backgroundColor: colors.error },
+              { width: `${percentage}%`, backgroundColor: isAtLimit ? colors.warning : colors.primary },
             ]}
           />
         </View>
@@ -126,8 +131,8 @@ export const LimitModal: React.FC<LimitModalProps> = ({
           >
             {/* Header */}
             <View style={styles.header}>
-              <View style={[styles.iconContainer, { backgroundColor: `${colors.error}15` }]}>
-                <Ionicons name={getResourceIcon()} size={40} color={colors.error} />
+              <View style={[styles.iconContainer, { backgroundColor: `${colors.warning}15` }]}>
+                <Ionicons name={getResourceIcon()} size={40} color={colors.warning} />
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -136,12 +141,12 @@ export const LimitModal: React.FC<LimitModalProps> = ({
 
             {/* Title */}
             <Text style={[styles.title, { color: colors.text }]}>
-              {limitError.error === 'limit_reached' ? 'Limite Atingido!' : 'Recurso Bloqueado'}
+              {limitError.error === 'limit_reached' ? 'Você está indo bem! 🎉' : 'Recurso Premium'}
             </Text>
 
             {/* Message */}
             <Text style={[styles.message, { color: colors.textSecondary }]}>
-              {limitError.message}
+              {getFriendlyMessage()}
             </Text>
 
             {/* Progress Bar */}
@@ -158,9 +163,9 @@ export const LimitModal: React.FC<LimitModalProps> = ({
             {/* Benefits */}
             <View style={styles.benefitsContainer}>
               <View style={styles.benefitsHeader}>
-                <Ionicons name="gift" size={20} color={colors.primary} />
+                <Ionicons name="rocket" size={20} color={colors.primary} />
                 <Text style={[styles.benefitsTitle, { color: colors.text }]}>
-                  {limitError.upgrade.message}
+                  Desbloqueie mais recursos:
                 </Text>
               </View>
 

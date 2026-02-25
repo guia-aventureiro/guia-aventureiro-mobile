@@ -145,11 +145,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
   },
   button: {
-    flex: 1,
+    width: '100%',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,

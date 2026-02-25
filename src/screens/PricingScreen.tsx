@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ import { Button } from '../components/Button';
 import { PlanBadge } from '../components/PlanBadge';
 import { Plan, BillingCycle, PlanDetails } from '../types/subscription';
 import { showAlert } from '../components/CustomAlert';
+import * as subscriptionService from '../services/subscriptionService';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 64;
@@ -28,9 +30,80 @@ export const PricingScreen = ({ navigation }: any) => {
   const upgradeMutation = useUpgrade();
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const currentPlan = subscriptionData?.subscription?.plan || 'free';
   const plans = plansData?.plans || [];
+
+  /**
+   * Abre Stripe Checkout para assinar Premium
+   */
+  const handleSubscribePremium = async () => {
+    try {
+      setCheckoutLoading(true);
+
+      // Criar sessão de checkout
+      const { url } = await subscriptionService.createCheckoutSession();
+
+      // Abrir Stripe Checkout no browser nativo
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+        
+        showAlert(
+          'Pagamento em andamento',
+          'Complete o pagamento no navegador. Você será redirecionado automaticamente ao finalizar.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        throw new Error('Não foi possível abrir o navegador');
+      }
+    } catch (error: any) {
+      console.error('Erro ao criar checkout:', error);
+      
+      if (error.response?.data?.error === 'already_premium') {
+        showAlert('Aviso', 'Você já possui o plano Premium ativo!');
+      } else {
+        showAlert(
+          'Erro',
+          error.response?.data?.message || 'Erro ao abrir checkout. Tente novamente.'
+        );
+      }
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  /**
+   * Abre Customer Portal para gerenciar assinatura
+   */
+  const handleManageSubscription = async () => {
+    try {
+      setPortalLoading(true);
+
+      // Obter URL do Customer Portal
+      const { url } = await subscriptionService.getCustomerPortalUrl();
+
+      // Abrir Customer Portal
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        throw new Error('Não foi possível abrir o navegador');
+      }
+    } catch (error: any) {
+      console.error('Erro ao abrir portal:', error);
+      showAlert(
+        'Erro',
+        error.response?.data?.message ||
+          'Erro ao abrir gerenciamento de assinatura. Tente novamente.'
+      );
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   const handleUpgrade = async (targetPlan: Plan) => {
     if (targetPlan === currentPlan) {
@@ -38,8 +111,14 @@ export const PricingScreen = ({ navigation }: any) => {
       return;
     }
 
+    // Premium: abrir Stripe Checkout
+    if (targetPlan === 'premium') {
+      await handleSubscribePremium();
+      return;
+    }
+
     // Não permitir downgrade direto (deve cancelar e esperar expirar)
-    const planHierarchy = { free: 0, premium: 1, pro: 2 };
+    const planHierarchy = { free: 0, premium: 1 };
     if (planHierarchy[targetPlan] < planHierarchy[currentPlan]) {
       showAlert(
         'Downgrade não permitido',
@@ -143,11 +222,62 @@ export const PricingScreen = ({ navigation }: any) => {
         <Button
           title={isCurrentPlan ? 'Plano Atual' : plan.cta}
           onPress={() => handleUpgrade(plan.id)}
-          disabled={isCurrentPlan || upgradeMutation.isPending}
-          loading={upgradeMutation.isPending}
+          disabled={isCurrentPlan || upgradeMutation.isPending || checkoutLoading}
+          loading={upgradeMutation.isPending || checkoutLoading}
           variant={plan.popular ? 'primary' : 'outline'}
         />
       </View>
+    );
+  };
+
+  /**
+   * FAQ Section
+   */
+  const faqItems = [
+    {
+      question: 'Posso cancelar a qualquer momento?',
+      answer:
+        'Sim! Você pode cancelar sua assinatura a qualquer momento sem taxas. O acesso continuará até o fim do período pago.',
+    },
+    {
+      question: 'O que acontece com meus roteiros se eu cancelar?',
+      answer:
+        'Você mantém acesso a todos os roteiros criados. Apenas o limite de criação volta para 5 roteiros ativos.',
+    },
+    {
+      question: 'Como funciona o pagamento?',
+      answer:
+        'Os pagamentos são processados de forma segura pelo Stripe. Aceitamos cartões de crédito e débito. Você receberá um recibo por email.',
+    },
+    {
+      question: 'Posso fazer upgrade/downgrade depois?',
+      answer:
+        'Sim! Você pode fazer upgrade a qualquer momento. Para downgrade, basta cancelar e aguardar o fim do período pago.',
+    },
+  ];
+
+  const renderFaqItem = (item: typeof faqItems[0], index: number) => {
+    const isExpanded = expandedFaq === index;
+
+    return (
+      <TouchableOpacity
+        key={index}
+        style={[styles.faqItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={() => setExpandedFaq(isExpanded ? null : index)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.faqHeader}>
+          <Text style={[styles.faqQuestion, { color: colors.text }]}>{item.question}</Text>
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={colors.textSecondary}
+          />
+        </View>
+        {isExpanded && (
+          <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{item.answer}</Text>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -230,6 +360,36 @@ export const PricingScreen = ({ navigation }: any) => {
         {/* Plans */}
         <View style={styles.plansContainer}>
           {plans.map(plan => renderPlanCard(plan))}
+        </View>
+
+        {/* Manage Subscription (apenas para Premium) */}
+        {currentPlan === 'premium' && (
+          <TouchableOpacity
+            style={[
+              styles.manageButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={handleManageSubscription}
+            disabled={portalLoading}
+          >
+            {portalLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <Ionicons name="settings-outline" size={20} color={colors.primary} />
+                <Text style={[styles.manageButtonText, { color: colors.primary }]}>
+                  Gerenciar Assinatura
+                </Text>
+                <Ionicons name="open-outline" size={16} color={colors.textSecondary} />
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {/* FAQ Section */}
+        <View style={styles.faqSection}>
+          <Text style={[styles.faqTitle, { color: colors.text }]}>Perguntas Frequentes</Text>
+          {faqItems.map((item, index) => renderFaqItem(item, index))}
         </View>
 
         {/* Footer Info */}
@@ -391,6 +551,51 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: 15,
     flex: 1,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginTop: 8,
+  },
+  manageButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  faqSection: {
+    gap: 12,
+    marginTop: 8,
+  },
+  faqTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  faqItem: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  faqQuestion: {
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 12,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    lineHeight: 21,
   },
   footerInfo: {
     flexDirection: 'row',

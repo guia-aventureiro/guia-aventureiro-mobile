@@ -27,6 +27,7 @@ interface ShareModalProps {
   itineraryTitle: string;
   existingShareLink?: string;
   onUpgradePress?: () => void;
+  onSuccess?: (message: string) => void;
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
@@ -36,6 +37,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   itineraryTitle,
   existingShareLink,
   onUpgradePress,
+  onSuccess,
 }) => {
   const colors = useColors();
   const { toast, hideToast, success } = useToast();
@@ -191,30 +193,38 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   const handleRevokeLink = async () => {
-    showAlert(
-      'Revogar Link',
-      'Tem certeza? O link atual será desativado e não poderá ser acessado por ninguém.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Revogar',
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await itineraryService.revokeShareLink(itineraryId);
-              setShareLink('');
-              showAlert('Link removido', 'Seu roteiro agora é privado');
-              onClose();
-            } catch (error: any) {
-              showAlert('Erro', error.response?.data?.message || 'Erro ao remover link');
-            } finally {
-              setLoading(false);
+    // Fechar modal primeiro para evitar modal dentro de modal
+    onClose();
+    
+    // Pequeno delay para garantir que o modal fechou
+    setTimeout(() => {
+      showAlert(
+        'Revogar Link',
+        'Tem certeza? O link atual será desativado e não poderá ser acessado por ninguém.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Revogar',
+            style: 'destructive',
+            onPress: async () => {
+              setLoading(true);
+              try {
+                await itineraryService.revokeShareLink(itineraryId);
+                setShareLink('');
+                // Chamar callback de sucesso do componente pai
+                if (onSuccess) {
+                  onSuccess('Seu roteiro agora é privado');
+                }
+              } catch (error: any) {
+                showAlert('Erro', error.response?.data?.message || 'Erro ao remover link');
+              } finally {
+                setLoading(false);
+              }
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }, 300);
   };
 
   return (

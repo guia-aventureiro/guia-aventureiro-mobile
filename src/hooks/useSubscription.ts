@@ -28,7 +28,10 @@ export const useMySubscription = () => {
   return useQuery({
     queryKey: ['subscription'],
     queryFn: getMySubscription,
-    staleTime: 1000 * 60, // 1 minuto
+    staleTime: 0, // Sempre buscar dados atualizados
+    cacheTime: 0, // Não manter em cache
+    refetchOnMount: 'always', // Sempre refetch ao montar
+    refetchOnWindowFocus: true, // Refetch ao voltar para o app
   });
 };
 
@@ -39,7 +42,10 @@ export const useUsage = () => {
   return useQuery({
     queryKey: ['usage'],
     queryFn: getUsage,
-    staleTime: 1000 * 30, // 30 segundos
+    staleTime: 0, // Sempre buscar dados atualizados
+    cacheTime: 0, // Não manter em cache
+    refetchOnMount: 'always', // Sempre refetch ao montar
+    refetchOnWindowFocus: true, // Refetch ao voltar para o app
   });
 };
 

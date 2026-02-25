@@ -11,6 +11,7 @@ import {
 import { showAlert } from '../components/CustomAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { itineraryService } from '../services/itineraryService';
 import { Itinerary } from '../types';
 import { useColors } from '../hooks/useColors';
@@ -26,6 +27,9 @@ import { BudgetTracker } from '../components/BudgetTracker';
 import { useAuth } from '../contexts/AuthContext';
 import { Tooltip } from '../components/Tooltip';
 import { useTooltip } from '../hooks/useTooltip';
+import { useMySubscription } from '../hooks/useSubscription';
+import { LimitModal } from '../components/LimitModal';
+import { LimitError } from '../types/subscription';
 // Utilitário para formatar valores em Real brasileiro
 function formatBRL(value: number | string) {
   let num = typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
@@ -571,11 +575,15 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const { user } = useAuth();
   const { toast, hideToast, success, error: showError } = useToast();
   const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
+  const { data: subscriptionData } = useMySubscription();
+  const queryClient = useQueryClient();
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(true);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [showBudgetTooltip, setShowBudgetTooltip] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitError, setLimitError] = useState<LimitError | null>(null);
   const isLoadingRef = useRef(false);
 
   // Verificar permissões do usuário
@@ -596,7 +604,6 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     useCallback(() => {
       // Prevenir múltiplas chamadas simultâneas
       if (isLoadingRef.current) {
-        console.log('⚠️ Já está carregando, ignorando chamada duplicada');
         return;
       }
 
@@ -606,7 +613,6 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       const fetchItinerary = async () => {
         try {
           setLoading(true);
-          console.log('📥 Carregando roteiro ID:', id);
           
           // Validar se ID existe
           if (!id) {
@@ -619,7 +625,6 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
             const mockData = getMockItinerary(id);
             
             if (mockData && isMounted) {
-              console.log('✅ Roteiro mockado carregado:', mockData._id);
               setItinerary(mockData);
               setLoading(false);
               isLoadingRef.current = false;
@@ -633,23 +638,11 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
           const data = await itineraryService.getById(id);
           
           if (isMounted) {
-            console.log('✅ Roteiro carregado:', data._id);
             setItinerary(data);
             setLoading(false);
           }
         } catch (error) {
           if (isMounted) {
-            console.error('❌ Erro ao carregar roteiro:', error);
-            
-            // Log detalhado do erro
-            if (error instanceof Error) {
-              console.error('Mensagem:', error.message);
-            }
-            if ((error as any)?.response) {
-              console.error('Status:', (error as any).response?.status);
-              console.error('Data:', (error as any).response?.data);
-            }
-            
             // Mensagem específica baseada no erro
             let errorMessage = 'Não foi possível carregar o roteiro.';
             if ((error as any)?.response?.status === 400) {
@@ -683,15 +676,20 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   );
 
   const loadItinerary = useCallback(async () => {
+    // Prevenir múltiplas chamadas simultâneas
+    if (isLoadingRef.current) {
+      console.log('⚠️ loadItinerary() - Já está carregando, ignorando chamada duplicada');
+      return;
+    }
+
+    isLoadingRef.current = true;
+
     try {
-      console.log('📥 Recarregando roteiro ID:', id);
-      
       // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
       if (id.startsWith('mock-')) {
         await new Promise(resolve => setTimeout(resolve, 300));
         const mockData = getMockItinerary(id);
         if (mockData) {
-          console.log('✅ Roteiro mockado recarregado:', mockData._id);
           setItinerary(mockData);
           return;
         }
@@ -699,11 +697,12 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       // ===================================================================
       
       const data = await itineraryService.getById(id);
-      console.log('✅ Roteiro recarregado:', data._id);
       setItinerary(data);
     } catch (error) {
-      console.error('❌ Erro ao recarregar roteiro:', error);
-      showError('Não foi possível carregar o roteiro.');
+      // Não mostrar erro aqui para não quebrar a experiência após adicionar gasto
+      // O dado anterior continua válido
+    } finally {
+      isLoadingRef.current = false;
     }
   }, [id]);
 
@@ -743,6 +742,12 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
               await itineraryService.delete(id);
               console.log('✅ Roteiro deletado com sucesso');
               success('Roteiro excluído com sucesso!');
+              
+              // Forçar reset completo das queries
+              await queryClient.resetQueries({ queryKey: ['usage'] });
+              await queryClient.resetQueries({ queryKey: ['subscription'] });
+              await queryClient.resetQueries({ queryKey: ['itineraries'] });
+              
               // Removido callback onListChange. Dashboard recarrega via useFocusEffect.
               setTimeout(() => {
                 navigation.goBack();
@@ -771,6 +776,13 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       console.log('✅ Roteiro duplicado com sucesso. Novo ID:', duplicate._id);
       success('Roteiro duplicado com sucesso!');
       
+      // Forçar reset completo das queries (remove do cache e refetch)
+      console.log('🔄 Resetando queries...');
+      await queryClient.resetQueries({ queryKey: ['usage'] });
+      await queryClient.resetQueries({ queryKey: ['subscription'] });
+      await queryClient.resetQueries({ queryKey: ['itineraries'] });
+      console.log('✅ Queries resetadas');
+      
       showAlert(
         'Roteiro Duplicado',
         'Deseja visualizar a cópia agora?',
@@ -788,6 +800,22 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         ]
       );
     } catch (error: any) {
+      // Verificar se é erro de limite (403)
+      if (error.response?.status === 403) {
+        const errorData = error.response?.data;
+        const isLimitError = errorData?.error === 'limit_reached' || errorData?.error === 'monthly_limit_reached';
+        
+        if (isLimitError) {
+          console.log('ℹ️ Limite de criação atingido - mostrando modal de upgrade');
+          
+          // Usar o LimitModal padronizado
+          setLimitError(errorData);
+          setShowLimitModal(true);
+          return;
+        }
+      }
+      
+      // Erro REAL (não é limite)
       console.error('❌ Erro ao duplicar roteiro:', error);
       showError(error.response?.data?.message || 'Não foi possível duplicar o roteiro.');
     }
@@ -827,10 +855,19 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     }
     
     try {
-      await budgetService.addExpense(id, expenseData);
+      console.log('💰 Adicionando gasto ao roteiro:', id);
+      const result = await budgetService.addExpense(id, expenseData);
+      console.log('✅ Gasto adicionado com sucesso:', result);
+      
       success('Gasto adicionado com sucesso!');
-      await loadItinerary();
+      
+      // Recarregar roteiro de forma assíncrona sem bloquear
+      loadItinerary().catch(err => {
+        console.error('⚠️ Erro ao recarregar roteiro após adicionar gasto:', err);
+        // Não propagar o erro - o gasto já foi adicionado com sucesso
+      });
     } catch (error: any) {
+      console.error('❌ Erro ao adicionar gasto:', error);
       throw new Error(error.response?.data?.message || 'Erro ao adicionar gasto');
     }
   };
@@ -845,10 +882,18 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     }
     
     try {
+      console.log('✏️ Atualizando gasto:', expenseId);
       await budgetService.updateExpense(id, expenseId, data);
+      console.log('✅ Gasto atualizado com sucesso');
+      
       success('Gasto atualizado com sucesso!');
-      await loadItinerary();
+      
+      // Recarregar roteiro de forma assíncrona sem bloquear
+      loadItinerary().catch(err => {
+        console.error('⚠️ Erro ao recarregar roteiro após atualizar gasto:', err);
+      });
     } catch (error: any) {
+      console.error('❌ Erro ao atualizar gasto:', error);
       throw new Error(error.response?.data?.message || 'Erro ao atualizar gasto');
     }
   };
@@ -863,10 +908,18 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     }
     
     try {
+      console.log('🗑️ Removendo gasto:', expenseId);
       await budgetService.deleteExpense(id, expenseId);
+      console.log('✅ Gasto removido com sucesso');
+      
       success('Gasto removido com sucesso!');
-      await loadItinerary();
+      
+      // Recarregar roteiro de forma assíncrona sem bloquear
+      loadItinerary().catch(err => {
+        console.error('⚠️ Erro ao recarregar roteiro após remover gasto:', err);
+      });
     } catch (error: any) {
+      console.error('❌ Erro ao remover gasto:', error);
       throw new Error(error.response?.data?.message || 'Erro ao remover gasto');
     }
   };
@@ -1088,6 +1141,30 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
+        {/* Fotos - só aparece para planos Premium e Pro */}
+        {isOwner && subscriptionData?.subscription?.plan !== 'free' && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Fotos da Viagem</Text>
+            <PhotoPicker
+              itineraryId={id}
+              existingPhotos={itinerary.rating?.photos || []}
+              maxPhotos={subscriptionData?.subscription?.plan === 'premium' ? 20 : 0}
+              onPhotosSelected={(photos) => {
+                try {
+                  // Atualizar o estado local do roteiro com as novas fotos
+                  setItinerary(prev => prev ? { 
+                    ...prev, 
+                    rating: { ...prev.rating, photos } 
+                  } : prev);
+                } catch (error) {
+                  console.error('Erro ao atualizar fotos no estado:', error);
+                }
+              }}
+              onUpgradePress={() => navigation.navigate('Pricing')}
+            />
+          </View>
+        )}
+
         {/* Dias */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Roteiro dia a dia</Text>
@@ -1176,6 +1253,12 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         itineraryTitle={itinerary?.title || ''}
         existingShareLink={itinerary?.shareLink}
         onUpgradePress={() => navigation.navigate('Pricing')}
+        onSuccess={(message) => {
+          success(message);
+          loadItinerary().catch(err => {
+            console.error('⚠️ Erro ao recarregar após revogar:', err);
+          });
+        }}
       />
       
       <RatingModal
@@ -1204,6 +1287,19 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         }}
         buttonText="Entendi!"
       />
+
+      {limitError && (
+        <LimitModal
+          visible={showLimitModal}
+          onClose={() => setShowLimitModal(false)}
+          limitError={limitError}
+          onUpgrade={() => {
+            setShowLimitModal(false);
+            navigation.navigate('Pricing');
+          }}
+          currentPlan={subscriptionData?.subscription?.plan || 'free'}
+        />
+      )}
     </SafeAreaView>
   );
 };

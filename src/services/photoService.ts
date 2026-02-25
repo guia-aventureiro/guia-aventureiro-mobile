@@ -1,9 +1,10 @@
 // mobile/src/services/photoService.ts
 import * as ImagePicker from 'expo-image-picker';
-import { Alert, Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import env from '../config/env';
 import analyticsService from './analyticsService';
+import { showAlert } from '../components/CustomAlert';
 
 interface UploadResult {
   url: string;
@@ -23,7 +24,7 @@ class PhotoService {
     const { status: galleryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (cameraStatus !== 'granted' || galleryStatus !== 'granted') {
-      Alert.alert(
+      showAlert(
         'Permissões necessárias',
         'Precisamos de acesso à câmera e galeria para você adicionar fotos aos seus roteiros.'
       );
@@ -54,7 +55,7 @@ class PhotoService {
       return result.assets[0].uri;
     } catch (error) {
       console.error('Erro ao tirar foto:', error);
-      Alert.alert('Erro', 'Não foi possível tirar a foto.');
+      showAlert('Erro', 'Não foi possível tirar a foto.');
       return null;
     }
   }
@@ -81,7 +82,7 @@ class PhotoService {
       return { uri: result.assets[0].uri };
     } catch (error) {
       console.error('Erro ao selecionar foto:', error);
-      Alert.alert('Erro', 'Não foi possível selecionar a foto.');
+      showAlert('Erro', 'Não foi possível selecionar a foto.');
       return null;
     }
   }
@@ -108,7 +109,7 @@ class PhotoService {
       return result.assets.map((asset) => asset.uri);
     } catch (error) {
       console.error('Erro ao selecionar fotos:', error);
-      Alert.alert('Erro', 'Não foi possível selecionar as fotos.');
+      showAlert('Erro', 'Não foi possível selecionar as fotos.');
       return [];
     }
   }
@@ -159,8 +160,18 @@ class PhotoService {
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Erro do servidor:', errorData);
-        throw new Error(errorData.message || 'Erro ao fazer upload da foto');
+        
+        // Se for erro de limite, logar de forma diferente
+        if (response.status === 403 && errorData.error === 'limit_reached') {
+          console.log('ℹ️ Limite de upload atingido:', errorData);
+        } else {
+          console.error('❌ Erro do servidor:', errorData);
+        }
+        
+        // Criar erro com response data para ser tratado pelo chamador
+        const error: any = new Error(errorData.message || 'Erro ao fazer upload da foto');
+        error.response = { status: response.status, data: errorData };
+        throw error;
       }
 
       const data = await response.json();
@@ -218,6 +229,7 @@ class PhotoService {
       return;
     }
 
+    // Usar Alert nativo para evitar problemas com callbacks assíncronos
     Alert.alert(
       'Adicionar foto',
       'Escolha uma opção',

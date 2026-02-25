@@ -25,12 +25,6 @@ export const PlanBadge: React.FC<PlanBadgeProps> = ({ plan, size = 'medium' }) =
       color: '#FFB300',
       bgColor: '#FFF9E6',
     },
-    pro: { 
-      label: 'Pro', 
-      emoji: '💎',
-      color: '#7B2CBF',
-      bgColor: '#F0E6FF',
-    },
   };
 
   const config = planConfig[plan];

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { itineraryService } from '../services/itineraryService';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -41,6 +42,7 @@ export const GenerateScreen = ({ navigation }: any) => {
   const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
   const { canUseAI, usage, plan } = useCanPerformAction();
   const { data: subscriptionData } = useMySubscription();
+  const queryClient = useQueryClient();
   
   const [showAITooltip, setShowAITooltip] = useState(false);
   const [city, setCity] = useState('');
@@ -205,15 +207,13 @@ export const GenerateScreen = ({ navigation }: any) => {
     if (can === false) {
       setLimitError({
         error: 'limit_reached',
-        message: `Você atingiu o limite de ${usage?.aiGenerations.limit} gerações com IA por mês do plano ${plan?.toUpperCase()}`,
+        message: `Você atingiu o limite de ${usage?.aiGenerations.limit} criações de roteiros por mês do plano ${plan?.toUpperCase()}`,
         currentUsage: usage?.aiGenerations.current || 0,
         limit: usage?.aiGenerations.limit || 0,
         plan: plan || 'free',
         upgrade: {
-          message: plan === 'free' 
-            ? 'Faça upgrade para o Premium e tenha 20 gerações por mês'
-            : 'Faça upgrade para o Pro e tenha gerações ilimitadas',
-          availablePlans: plan === 'free' ? ['premium', 'pro'] : ['pro'],
+          message: 'Faça upgrade para o Premium e tenha gerações ilimitadas',
+          availablePlans: ['premium'],
         },
       });
       setShowLimitModal(true);
@@ -247,6 +247,11 @@ export const GenerateScreen = ({ navigation }: any) => {
       console.log('✅ Roteiro recebido da API:', itinerary._id);
       success('Roteiro criado com sucesso!');
       
+      // Forçar reset completo das queries
+      await queryClient.resetQueries({ queryKey: ['usage'] });
+      await queryClient.resetQueries({ queryKey: ['subscription'] });
+      await queryClient.resetQueries({ queryKey: ['itineraries'] });
+      
       // Navegar para o Dashboard (aba principal) e depois para o detalhe
       // Isso evita duplicação porque reseta o stack da aba Generate
       setTimeout(() => {
@@ -256,14 +261,15 @@ export const GenerateScreen = ({ navigation }: any) => {
         });
       }, 500);
     } catch (err: any) {
-      console.error('❌ Erro ao gerar roteiro:', err);
-      console.error('Response:', err.response?.data);
-      
-      // Capturar erro 403 de limite atingido
+      // Capturar erro 403 de limite atingido (não é um erro crítico, é parte do fluxo de negócio)
       if (err.response?.status === 403 && err.response?.data?.error === 'limit_reached') {
+        console.log('ℹ️ Limite de plano atingido:', err.response.data);
         setLimitError(err.response.data);
         setShowLimitModal(true);
       } else {
+        // Apenas erros técnicos vão para console.error
+        console.error('❌ Erro ao gerar roteiro:', err);
+        console.error('Response:', err.response?.data);
         showError(err.response?.data?.message || 'Erro ao gerar roteiro. Tente novamente.');
       }
     } finally {

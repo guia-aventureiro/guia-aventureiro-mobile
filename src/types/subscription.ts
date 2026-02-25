@@ -1,6 +1,6 @@
 // mobile/src/types/subscription.ts
 
-export type Plan = 'free' | 'premium' | 'pro';
+export type Plan = 'free' | 'premium';
 export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'trial';
 export type BillingCycle = 'monthly' | 'yearly';
 

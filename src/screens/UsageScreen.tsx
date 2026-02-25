@@ -1,5 +1,5 @@
 // mobile/src/screens/UsageScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../hooks/useColors';
 import { useMySubscription, useUsage, useCancelSubscription, useReactivateSubscription } from '../hooks/useSubscription';
@@ -20,16 +21,68 @@ import { showAlert } from '../components/CustomAlert';
 
 export const UsageScreen = ({ navigation }: any) => {
   const colors = useColors();
-  const { data: subscriptionData, isLoading: loadingSub, refetch: refetchSub } = useMySubscription();
-  const { data: usageData, isLoading: loadingUsage, refetch: refetchUsage } = useUsage();
+  const { data: subscriptionData, isLoading: loadingSub, refetch: refetchSub, isFetching: fetchingSub } = useMySubscription();
+  const { data: usageData, isLoading: loadingUsage, refetch: refetchUsage, isFetching: fetchingUsage } = useUsage();
   const cancelMutation = useCancelSubscription();
   const reactivateMutation = useReactivateSubscription();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  console.log('🎨 UsageScreen RENDERIZADO', {
+    loading: loadingSub || loadingUsage,
+    fetching: fetchingSub || fetchingUsage,
+    itineraries: usageData?.usage?.itineraries?.current,
+    forceUpdate,
+  });
 
   const subscription = subscriptionData?.subscription;
   const usage = usageData?.usage;
   const planDetails = subscriptionData?.subscription?.planDetails;
+
+  // Debug: Log quando usage mudar
+  useEffect(() => {
+    if (usage) {
+      console.log('🔍 UsageScreen - usage atualizado:', {
+        itineraries: usage.itineraries.current,
+        aiGenerations: usage.aiGenerations.current,
+      });
+    }
+  }, [usage]);
+
+  // Refetch ao montar pela primeira vez
+  useEffect(() => {
+    console.log('📊 UsageScreen montado - fazendo refetch inicial...');
+    const doRefetch = async () => {
+      const [subResult, usageResult] = await Promise.all([refetchSub(), refetchUsage()]);
+      console.log('📊 Refetch inicial completo:', {
+        subscription: subResult.data?.subscription?.plan,
+        usage: usageResult.data?.usage?.itineraries?.current,
+      });
+    };
+    doRefetch();
+  }, []);
+
+  // Refetch ao ganhar foco para sempre mostrar dados atualizados
+  useFocusEffect(
+    useCallback(() => {
+      console.log('👁️👁️👁️ UsageScreen GANHOU FOCO - iniciando refetch...');
+      const doRefetch = async () => {
+        try {
+          const [subResult, usageResult] = await Promise.all([refetchSub(), refetchUsage()]);
+          console.log('👁️ Refetch ao ganhar foco completo:', {
+            subscription: subResult.data?.subscription?.plan,
+            usage: usageResult.data?.usage?.itineraries?.current,
+          });
+          // Forçar re-render
+          setForceUpdate(prev => prev + 1);
+        } catch (err) {
+          console.error('❌ Erro no refetch:', err);
+        }
+      };
+      doRefetch();
+    }, [refetchSub, refetchUsage])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -178,7 +231,7 @@ export const UsageScreen = ({ navigation }: any) => {
           )}
 
           {/* Action Buttons */}
-          {subscription?.plan !== 'pro' && !isCancelled && (
+          {subscription?.plan === 'free' && (
             <Button title="Fazer Upgrade" onPress={handleUpgrade} variant="primary" />
           )}
 
@@ -208,9 +261,9 @@ export const UsageScreen = ({ navigation }: any) => {
               <Ionicons name="refresh" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
-
           <View style={styles.usageList}>
             <UsageBar
+              key={`itineraries-${usage?.itineraries?.current || 0}-${forceUpdate}`}
               label="Roteiros"
               current={usage?.itineraries.current || 0}
               limit={usage?.itineraries.limit || 0}
@@ -221,7 +274,8 @@ export const UsageScreen = ({ navigation }: any) => {
             />
 
             <UsageBar
-              label="Gerações com IA"
+              key={`ai-${usage?.aiGenerations?.current || 0}-${forceUpdate}`}
+              label="Criações Mensais"
               current={usage?.aiGenerations.current || 0}
               limit={usage?.aiGenerations.limit || 0}
               unlimited={usage?.aiGenerations.unlimited}
@@ -230,17 +284,21 @@ export const UsageScreen = ({ navigation }: any) => {
               onUpgrade={handleUpgrade}
             />
 
-            <UsageBar
-              label="Fotos"
-              current={usage?.photos.current || 0}
-              limit={usage?.photos.limit || 0}
-              icon="image"
-              showUpgrade={subscription?.plan !== 'pro'}
-              onUpgrade={handleUpgrade}
-            />
+            {subscription?.plan !== 'free' && (
+              <UsageBar
+                key={`photos-${usage?.photos?.current || 0}-${forceUpdate}`}
+                label="Fotos"
+                current={usage?.photos.current || 0}
+                limit={usage?.photos.limit || 0}
+                icon="image"
+                showUpgrade={false}
+                onUpgrade={handleUpgrade}
+              />
+            )}
 
             {subscription?.plan !== 'free' && (
               <UsageBar
+                key={`collaborators-${usage?.collaborators?.current || 0}-${forceUpdate}`}
                 label="Colaboradores"
                 current={usage?.collaborators.current || 0}
                 limit={usage?.collaborators.limit || 0}

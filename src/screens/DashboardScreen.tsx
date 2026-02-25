@@ -34,7 +34,7 @@ import { formatBRL } from '../components/Input';
 import { Tooltip } from '../components/Tooltip';
 import { LimitModal } from '../components/LimitModal';
 import { AdBanner } from '../components/AdBanner';
-import { useCanPerformAction, useMySubscription } from '../hooks/useSubscription';
+import { useCanPerformAction, useMySubscription, useUsage } from '../hooks/useSubscription';
 import { LimitError } from '../types/subscription';
 import { Itinerary } from '../types';
 
@@ -45,7 +45,8 @@ export const DashboardScreen = ({ navigation }: any) => {
   const { toast, showToast, hideToast, success, error } = useToast();
   const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
   const { canCreateItinerary, usage, plan } = useCanPerformAction();
-  const { data: subscriptionData } = useMySubscription();
+  const { data: subscriptionData, refetch: refetchSubscription } = useMySubscription();
+  const { refetch: refetchUsage } = useUsage();
   
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [filteredItineraries, setFilteredItineraries] = useState<Itinerary[]>([]);
@@ -133,8 +134,11 @@ export const DashboardScreen = ({ navigation }: any) => {
     useCallback(() => {
       if (user) {
         loadItineraries();
+        // Atualizar estatísticas ao ganhar foco
+        refetchUsage();
+        refetchSubscription();
       }
-    }, [user, loadItineraries])
+    }, [user, loadItineraries, refetchUsage, refetchSubscription])
   );
 
   // Mostrar tooltip para criar primeiro roteiro
@@ -195,8 +199,8 @@ export const DashboardScreen = ({ navigation }: any) => {
         limit: usage?.itineraries.limit || 0,
         plan: plan || 'free',
         upgrade: {
-          message: 'Faça upgrade para criar mais roteiros',
-          availablePlans: plan === 'free' ? ['premium', 'pro'] : ['pro'],
+          message: 'Faça upgrade para o Premium e crie até 50 roteiros',
+          availablePlans: ['premium'],
         },
       });
       setShowLimitModal(true);

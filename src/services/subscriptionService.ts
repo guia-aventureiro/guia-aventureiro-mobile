@@ -26,7 +26,13 @@ export const getPlans = async (): Promise<{ plans: PlanDetails[] }> => {
 export const getMySubscription = async (): Promise<{
   subscription: Subscription & { planDetails: PlanDetails };
 }> => {
-  const { data } = await api.get('/subscriptions/my-subscription');
+  // Adicionar timestamp para evitar cache
+  const { data } = await api.get(`/subscriptions/my-subscription?_t=${Date.now()}`, {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+    }
+  });
   return data;
 };
 
@@ -38,7 +44,14 @@ export const getUsage = async (): Promise<{
   plan: Plan;
   planDetails: PlanDetails;
 }> => {
-  const { data } = await api.get('/subscriptions/usage');
+  // Adicionar timestamp para evitar cache
+  const { data } = await api.get(`/subscriptions/usage?_t=${Date.now()}`, {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+    }
+  });
+  console.log('📊 getUsage response:', data);
   return data;
 };
 
@@ -104,3 +117,65 @@ export const reactivateSubscription = async (): Promise<{
   const { data } = await api.post('/subscriptions/reactivate');
   return data;
 };
+
+// ========================================
+// STRIPE INTEGRATION
+// ========================================
+
+/**
+ * Criar sessão de checkout Stripe
+ * Retorna URL para abrir no browser nativo
+ */
+export const createCheckoutSession = async (): Promise<{
+  sessionId: string;
+  url: string;
+}> => {
+  const { data } = await api.post('/subscriptions/create-checkout');
+  return data;
+};
+
+/**
+ * Obter URL do Customer Portal (gerenciar assinatura)
+ */
+export const getCustomerPortalUrl = async (): Promise<{
+  url: string;
+}> => {
+  const { data } = await api.post('/subscriptions/customer-portal');
+  return data;
+};
+
+/**
+ * Cancelar assinatura Stripe
+ */
+export const cancelStripeSubscription = async (
+  immediately: boolean = false,
+  reason?: string
+): Promise<{
+  success: boolean;
+  message: string;
+  endsAt?: string;
+}> => {
+  const { data } = await api.post('/subscriptions/cancel-stripe', {
+    immediately,
+    reason,
+  });
+  return data;
+};
+
+/**
+ * Obter status detalhado da assinatura Stripe
+ */
+export const getStripeSubscriptionStatus = async (): Promise<{
+  plan: string;
+  status: string;
+  paymentStatus: string;
+  renewsAt?: string;
+  cancelledAt?: string;
+  hasStripeSubscription: boolean;
+  usage: any;
+  features: any;
+}> => {
+  const { data } = await api.get('/subscriptions/stripe-status');
+  return data;
+};
+

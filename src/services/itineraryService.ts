@@ -179,4 +179,9 @@ export const itineraryService = {
     const response = await api.get(`/shared/${shareId}`);
     return response.data;
   },
+
+  async copySharedItinerary(shareId: string): Promise<any> {
+    const response = await api.post(`/shared/${shareId}/copy`);
+    return response.data;
+  },
 };

@@ -29,11 +29,16 @@
       "bundleIdentifier": "com.guiaaventureiro.app",
       "supportsTablet": true,
       "buildNumber": "1.0.0",
+      "associatedDomains": [
+        "applinks:share.guiaaventureiro.app",
+        "applinks:share.guiaaventureiro.app"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Permitir acesso à câmera para tirar fotos dos seus roteiros.",
         "NSPhotoLibraryUsageDescription": "Permitir acesso à galeria para adicionar fotos aos roteiros.",
         "NSLocationWhenInUseUsageDescription": "Usar sua localização para sugerir destinos próximos.",
-        "NSUserNotificationUsageDescription": "Permitir notificações para receber lembretes e alertas de viagem."
+        "NSUserNotificationUsageDescription": "Permitir notificações para receber lembretes e alertas de viagem.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -43,6 +48,23 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#005A8D"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "share.guiaaventureiro.app",
+              "pathPrefix": "/r"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

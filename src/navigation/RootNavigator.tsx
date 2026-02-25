@@ -1,14 +1,19 @@
 // mobile/src/navigation/RootNavigator.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { SplashScreen } from '../components/SplashScreen';
+import { SharedItineraryScreen } from '../screens/SharedItineraryScreen';
 import analyticsService from '../services/analyticsService';
+
+const Stack = createStackNavigator();
 
 export const RootNavigator = () => {
   const { user, isLoading, isTransitioning } = useAuth();
@@ -38,6 +43,51 @@ export const RootNavigator = () => {
       analyticsService.setUserId(null);
     }
   }, [user]);
+
+  // Tratar deep links e universal links
+  useEffect(() => {
+    const handleDeepLink = (url: string) => {
+      console.log('Link recebido:', url);
+      
+      // Tenta extrair shareId de ambos os formatos:
+      // 1. Deep link: guiaaventureiro://shared/{shareId}
+      // 2. Universal link: https://landing-page-patrickavilas-projects.vercel.app/r/{shareId}
+      let shareId: string | null = null;
+      
+      const deepLinkMatch = url.match(/guiaaventureiro:\/\/shared\/([a-f0-9-]+)/i);
+      const universalLinkMatch = url.match(/https?:\/\/(share\.guiaaventureiro\.app|landing-page.*\.vercel\.app)\/r\/([a-f0-9-]+)/i);
+      
+      if (deepLinkMatch && deepLinkMatch[1]) {
+        shareId = deepLinkMatch[1];
+      } else if (universalLinkMatch && universalLinkMatch[2]) {
+        shareId = universalLinkMatch[2];
+      }
+      
+      if (shareId) {
+        console.log('ShareId extraído:', shareId);
+        // Aguarda a navegação estar pronta
+        setTimeout(() => {
+          navigationRef.current?.navigate('SharedItinerary', { shareId });
+        }, 100);
+      }
+    };
+
+    // Captura link inicial (quando app foi aberto via deep link)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink(url);
+      }
+    });
+
+    // Listener para links recebidos enquanto app está aberto
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const checkOnboarding = async () => {
     try {
@@ -80,7 +130,18 @@ export const RootNavigator = () => {
           routeNameRef.current = currentRouteName;
         }}
       >
-        {user ? <MainNavigator /> : <AuthNavigator />}
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main">
+            {() => (user ? <MainNavigator /> : <AuthNavigator />)}
+          </Stack.Screen>
+          <Stack.Screen 
+            name="SharedItinerary" 
+            component={SharedItineraryScreen}
+            options={{
+              presentation: 'card',
+            }}
+          />
+        </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );

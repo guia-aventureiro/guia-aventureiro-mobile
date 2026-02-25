@@ -1,6 +1,7 @@
 import { formatBRL } from '../components/Input';
 // mobile/src/screens/ProfileScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -20,6 +21,7 @@ import { showAlert } from '../components/CustomAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
 import { useColors } from '../hooks/useColors';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { itineraryService } from '../services/itineraryService';
@@ -36,8 +38,9 @@ export const ProfileScreen = ({ navigation }: any) => {
   const { user, logout, updateProfile } = useAuth();
   const colors = useColors();
   const { shouldShowTooltip, markTooltipAsShown, resetTooltips } = useTooltip();
+  const { subscription, isPremium } = useUser();
   const { data: subscriptionData } = useMySubscription();
-  const currentPlan = subscriptionData?.subscription?.plan || 'free';
+  const currentPlan = subscription?.plan || subscriptionData?.subscription?.plan || 'free';
   
   const [stats, setStats] = useState({ total: 0, completed: 0, countries: 0, lastItinerary: '' });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -158,6 +161,13 @@ export const ProfileScreen = ({ navigation }: any) => {
     loadAnalyticsPreference();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Carregar apenas no mount
+
+  // Recarregar estatísticas quando a tela ganhar foco (após duplicar/deletar roteiros)
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats])
+  );
 
   // Tooltip para conquistas - não mostrar se estiver carregando
   useEffect(() => {
@@ -462,16 +472,16 @@ export const ProfileScreen = ({ navigation }: any) => {
           </View>
           <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
-        {currentPlan !== 'pro' && (
+        {currentPlan === 'free' && (
           <TouchableOpacity 
             style={[styles.menuItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
-            onPress={() => navigation.navigate('Pricing')}
+            onPress={() => navigation.navigate('Upgrade')}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text style={{ fontSize: 20 }}>⬆️</Text>
+              <Text style={{ fontSize: 20 }}>🚀</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.menuText, { color: colors.text }]}>Fazer Upgrade</Text>
-                <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Desbloqueie mais recursos</Text>
+                <Text style={[styles.menuText, { color: colors.text }]}>Fazer Upgrade Premium</Text>
+                <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Desbloqueie todos os recursos</Text>
               </View>
             </View>
             <Text style={[styles.menuArrow, { color: colors.textSecondary }]}>›</Text>

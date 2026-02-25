@@ -20,6 +20,7 @@ import { MapScreen } from '../screens/MapScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { PricingScreen } from '../screens/PricingScreen';
 import { UsageScreen } from '../screens/UsageScreen';
+import UpgradeScreen from '../screens/UpgradeScreen';
 import { useNotifications } from '../hooks/useNotifications';
 
 const Tab = createBottomTabNavigator();
@@ -74,6 +75,7 @@ const ProfileStack = () => {
       }}
     >
       <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+      <Stack.Screen name="Upgrade" component={UpgradeScreen} />
       <Stack.Screen name="EditPreferences" component={EditPreferencesScreen} />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />

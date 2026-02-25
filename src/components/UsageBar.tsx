@@ -1,5 +1,5 @@
 // mobile/src/components/UsageBar.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useColors } from '../hooks/useColors';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +26,11 @@ export const UsageBar: React.FC<UsageBarProps> = ({
   unit = '',
 }) => {
   const colors = useColors();
+
+  // Log sempre que props mudarem
+  useEffect(() => {
+    console.log(`📊 UsageBar (${label}) renderizado:`, { current, limit, unlimited });
+  }, [label, current, limit, unlimited]);
 
   const percentage = unlimited ? 0 : Math.min((current / limit) * 100, 100);
   const isNearLimit = percentage >= 80;
