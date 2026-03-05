@@ -1,27 +1,38 @@
 // mobile/src/config/env.ts
-import Constants from 'expo-constants';
+
+// API URLs - can be overridden via environment variables
+const DEV_API_URL = process.env.EXPO_PUBLIC_LOCAL_API_URL || process.env.EXPO_PUBLIC_DEV_API_URL || 'http://localhost:3000/api';
+const PROD_API_URL = process.env.EXPO_PUBLIC_PROD_API_URL || 'https://guia-aventureiro-backend.onrender.com/api';
+const APP_ENV = (process.env.EXPO_PUBLIC_APP_ENV || 'local').toLowerCase();
+
+// Google Maps Key - NEVER hardcoded, read from .env.local
+const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY;
+
+if (!GOOGLE_MAPS_KEY) {
+  console.warn('⚠️  EXPO_PUBLIC_GOOGLE_MAPS_KEY not set. Maps will not work. Check .env.local');
+}
 
 const ENV = {
-  dev: {
-    apiUrl: 'http://192.168.0.14:3000/api',
-    googleMapsKey: 'AIzaSyDJERNmmT8x4AnEKjQEFHSTmSvMBwgTi0o',
+  local: {
+    apiUrl: DEV_API_URL,
+    googleMapsKey: GOOGLE_MAPS_KEY,
   },
-  prod: {
-    apiUrl: 'https://guia-aventureiro-backend.onrender.com/api',
-    googleMapsKey: 'AIzaSyDJERNmmT8x4AnEKjQEFHSTmSvMBwgTi0o',
+  production: {
+    apiUrl: PROD_API_URL,
+    googleMapsKey: GOOGLE_MAPS_KEY,
   },
 };
 
 const getEnvVars = () => {
-  // Detecta automaticamente se está em desenvolvimento ou produção
-  if (__DEV__) {
-    console.log('🔧 Ambiente: DESENVOLVIMENTO');
-    return ENV.dev;
+  // Seleção explícita de ambiente para facilitar Expo Go local e validação de produção
+  if (APP_ENV === 'production') {
+    return ENV.production;
   }
-  console.log('🚀 Ambiente: PRODUÇÃO');
-  return ENV.prod;
+  return ENV.local;
 };
 
 const env = getEnvVars();
 export const apiUrl = env.apiUrl;
+export const appEnv = APP_ENV === 'production' ? 'production' : 'local';
+export const isProductionEnv = appEnv === 'production';
 export default env;
