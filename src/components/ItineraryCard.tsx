@@ -1,5 +1,5 @@
 // mobile/src/components/ItineraryCard.tsx
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Itinerary } from '../types';
 import { useColors } from '../hooks/useColors';
@@ -16,6 +16,37 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
   const colors = useColors();
   const startDate = format(new Date(itinerary.startDate), 'dd MMM', { locale: ptBR });
   const endDate = format(new Date(itinerary.endDate), 'dd MMM yyyy', { locale: ptBR });
+  const fallbackImage = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
+
+  const resolvedImageUri = useMemo(() => {
+    const dynamicItinerary = itinerary as any;
+    const candidates = [
+      itinerary.destination?.coverImage,
+      dynamicItinerary?.coverImage,
+      dynamicItinerary?.photos?.[0],
+      itinerary.rating?.photos?.[0],
+    ];
+
+    const firstValid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+
+    if (!firstValid) return fallbackImage;
+
+    // Some legacy data can have http links that fail on mobile security rules.
+    const normalized = firstValid.startsWith('http://') ? firstValid.replace('http://', 'https://') : firstValid;
+
+    // Ignore broken Google photo links without a valid key.
+    if (normalized.includes('maps.googleapis.com') && normalized.includes('key=undefined')) {
+      return fallbackImage;
+    }
+
+    return normalized;
+  }, [itinerary]);
+
+  const [imageUri, setImageUri] = useState(resolvedImageUri);
+
+  useEffect(() => {
+    setImageUri(resolvedImageUri);
+  }, [resolvedImageUri]);
 
   const statusLabels = {
     rascunho: 'Rascunho',
@@ -28,10 +59,13 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
   return (
     <TouchableOpacity style={[styles.card, { backgroundColor: colors.card }]} onPress={onPress} activeOpacity={0.7}>
       <Image
-        source={{
-          uri: (itinerary.destination && itinerary.destination.coverImage) || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop',
-        }}
+        source={{ uri: imageUri }}
         style={styles.image}
+        onError={() => {
+          if (imageUri !== fallbackImage) {
+            setImageUri(fallbackImage);
+          }
+        }}
       />
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
