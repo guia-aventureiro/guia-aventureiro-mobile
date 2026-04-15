@@ -81,11 +81,13 @@ export interface Activity {
       lng: number;
     };
   };
-  estimatedCost: number;
+  estimatedCost?: number;
+  cost?: number;
   duration: number;
   category: 'transporte' | 'alimentacao' | 'atracao' | 'hospedagem' | 'compras' | 'outro';
   bookingLinks?: BookingLink[];
-  completed: boolean;
+  completed?: boolean;
+  isCompleted?: boolean;
 }
 
 export interface BookingLink {
@@ -101,13 +103,13 @@ export interface Collaborator {
 
 export interface Expense {
   _id: string;
-  date: Date;
+  date: Date | string;
   category: 'hospedagem' | 'alimentacao' | 'transporte' | 'atracao' | 'compras' | 'outro';
   description: string;
   amount: number;
-  currency: string;
+  currency?: string;
   receipt?: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 export interface AuthContextType {
@@ -119,5 +121,10 @@ export interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
-  updateProfile: (name: string, avatar?: string, preferences?: any, publicProfile?: boolean) => Promise<User>;
+  updateProfile: (
+    name: string,
+    avatar?: string,
+    preferences?: any,
+    publicProfile?: boolean
+  ) => Promise<User>;
 }

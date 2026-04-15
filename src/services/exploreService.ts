@@ -5,6 +5,11 @@ import { Itinerary } from '../types';
 export interface PublicItinerary extends Itinerary {
   likes: string[];
   views: number;
+  description?: string;
+  tags?: string[];
+  isFeatured?: boolean;
+  likesCount?: number;
+  savesCount?: number;
 }
 
 export interface PopularDestination {
@@ -35,7 +40,9 @@ const exploreService = {
   /**
    * Busca feed de roteiros públicos
    */
-  getPublicItineraries: async (filters: ExploreFilters = {}): Promise<{
+  getPublicItineraries: async (
+    filters: ExploreFilters = {}
+  ): Promise<{
     itineraries: PublicItinerary[];
     pagination: {
       total: number;
@@ -85,7 +92,10 @@ const exploreService = {
   /**
    * Busca roteiros salvos
    */
-  getSaved: async (page: number = 1, limit: number = 20): Promise<{
+  getSaved: async (
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
     itineraries: PublicItinerary[];
     pagination: any;
   }> => {

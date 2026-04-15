@@ -121,7 +121,7 @@ export interface UsageInfo {
 }
 
 export interface LimitError {
-  error: 'limit_reached' | 'feature_locked';
+  error: 'limit_reached' | 'feature_locked' | 'monthly_limit_reached';
   message: string;
   currentUsage?: number;
   limit?: number;

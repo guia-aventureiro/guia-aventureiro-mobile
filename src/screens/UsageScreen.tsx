@@ -13,7 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../hooks/useColors';
-import { useMySubscription, useUsage, useCancelSubscription, useReactivateSubscription } from '../hooks/useSubscription';
+import {
+  useMySubscription,
+  useUsage,
+  useCancelSubscription,
+  useReactivateSubscription,
+} from '../hooks/useSubscription';
 import { UsageBar } from '../components/UsageBar';
 import { PlanBadge } from '../components/PlanBadge';
 import { Button } from '../components/Button';
@@ -21,8 +26,18 @@ import { showAlert } from '../components/CustomAlert';
 
 export const UsageScreen = ({ navigation }: any) => {
   const colors = useColors();
-  const { data: subscriptionData, isLoading: loadingSub, refetch: refetchSub, isFetching: fetchingSub } = useMySubscription();
-  const { data: usageData, isLoading: loadingUsage, refetch: refetchUsage, isFetching: fetchingUsage } = useUsage();
+  const {
+    data: subscriptionData,
+    isLoading: loadingSub,
+    refetch: refetchSub,
+    isFetching: fetchingSub,
+  } = useMySubscription();
+  const {
+    data: usageData,
+    isLoading: loadingUsage,
+    refetch: refetchUsage,
+    isFetching: fetchingUsage,
+  } = useUsage();
   const cancelMutation = useCancelSubscription();
   const reactivateMutation = useReactivateSubscription();
 
@@ -80,7 +95,7 @@ export const UsageScreen = ({ navigation }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await cancelMutation.mutateAsync();
+              await cancelMutation.mutateAsync(undefined);
               showAlert('Sucesso', 'Assinatura cancelada com sucesso.');
             } catch (error: any) {
               showAlert('Erro', error.response?.data?.message || 'Erro ao cancelar assinatura.');
@@ -112,7 +127,10 @@ export const UsageScreen = ({ navigation }: any) => {
 
   if (loadingSub || loadingUsage) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -128,7 +146,10 @@ export const UsageScreen = ({ navigation }: any) => {
   const isTrial = subscription?.isTrial;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -142,7 +163,11 @@ export const UsageScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
         }
       >
         {/* Current Plan Section */}
@@ -238,7 +263,7 @@ export const UsageScreen = ({ navigation }: any) => {
           </View>
           <View style={styles.usageList}>
             <UsageBar
-                key={`itineraries-${usage?.itineraries?.current || 0}`}
+              key={`itineraries-${usage?.itineraries?.current || 0}`}
               label="Roteiros"
               current={usage?.itineraries.current || 0}
               limit={usage?.itineraries.limit || 0}
@@ -249,7 +274,7 @@ export const UsageScreen = ({ navigation }: any) => {
             />
 
             <UsageBar
-                key={`ai-${usage?.aiGenerations?.current || 0}`}
+              key={`ai-${usage?.aiGenerations?.current || 0}`}
               label="Criações Mensais"
               current={usage?.aiGenerations.current || 0}
               limit={usage?.aiGenerations.limit || 0}

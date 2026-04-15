@@ -16,7 +16,8 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
   const colors = useColors();
   const startDate = format(new Date(itinerary.startDate), 'dd MMM', { locale: ptBR });
   const endDate = format(new Date(itinerary.endDate), 'dd MMM yyyy', { locale: ptBR });
-  const fallbackImage = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
+  const fallbackImage =
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
 
   const resolvedImageUri = useMemo(() => {
     const dynamicItinerary = itinerary as any;
@@ -27,12 +28,16 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
       itinerary.rating?.photos?.[0],
     ];
 
-    const firstValid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+    const firstValid = candidates.find(
+      (value) => typeof value === 'string' && value.trim().length > 0
+    );
 
     if (!firstValid) return fallbackImage;
 
     // Some legacy data can have http links that fail on mobile security rules.
-    const normalized = firstValid.startsWith('http://') ? firstValid.replace('http://', 'https://') : firstValid;
+    const normalized = firstValid.startsWith('http://')
+      ? firstValid.replace('http://', 'https://')
+      : firstValid;
 
     // Ignore broken Google photo links without a valid key.
     if (normalized.includes('maps.googleapis.com') && normalized.includes('key=undefined')) {
@@ -57,7 +62,11 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
   };
 
   return (
-    <TouchableOpacity style={[styles.card, { backgroundColor: colors.card }]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.card, { backgroundColor: colors.card }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <Image
         source={{ uri: imageUri }}
         style={styles.image}
@@ -72,7 +81,9 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
           {itinerary.title}
         </Text>
         <Text style={[styles.destination, { color: colors.textSecondary }]}>
-          {itinerary.destination ? `${itinerary.destination.city || 'N/A'}, ${itinerary.destination.country || 'N/A'}` : 'Destino não informado'}
+          {itinerary.destination
+            ? `${itinerary.destination.city || 'N/A'}, ${itinerary.destination.country || 'N/A'}`
+            : 'Destino não informado'}
         </Text>
         <Text style={[styles.dates, { color: colors.textSecondary }]}>
           {startDate} - {endDate} • {itinerary.duration} dias

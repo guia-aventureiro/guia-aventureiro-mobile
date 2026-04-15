@@ -10,14 +10,15 @@ import {
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from 'react-native';
 import { useColors } from '../hooks/useColors';
 import { showAlert } from './CustomAlert';
 
 // Função utilitária para formatar valor como Real brasileiro
 function formatBRL(value: number | string) {
-  let num = typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
+  let num =
+    typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
   if (isNaN(num)) num = 0;
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -31,11 +32,11 @@ function maskBRLInput(text: string) {
 
 interface Expense {
   _id: string;
-  date: Date;
+  date: Date | string;
   category: string;
   description: string;
   amount: number;
-  currency: string;
+  currency?: string;
   receipt?: string;
 }
 
@@ -66,7 +67,7 @@ const CATEGORIES = [
 ];
 
 const getCategoryInfo = (categoryId: string) => {
-  return CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[5];
+  return CATEGORIES.find((c) => c.id === categoryId) || CATEGORIES[5];
 };
 
 export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
@@ -142,7 +143,10 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               await onDeleteExpense(expense._id);
               showAlert('Gasto removido', 'O gasto foi removido com sucesso.');
             } catch (error: any) {
-              showAlert('Não foi possível remover', 'Não conseguimos remover esse gasto agora. Tente novamente.');
+              showAlert(
+                'Não foi possível remover',
+                'Não conseguimos remover esse gasto agora. Tente novamente.'
+              );
             }
           },
         },
@@ -152,14 +156,16 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
   // Calcular total por categoria
   const categoryTotals: { [key: string]: number } = {};
-  expenses.forEach(expense => {
+  expenses.forEach((expense) => {
     categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
   });
 
   return (
     <View style={styles.container}>
       {/* Resumo do Orçamento */}
-      <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View
+        style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      >
         <View style={styles.summaryHeader}>
           <Text style={[styles.summaryTitle, { color: colors.text }]}>Orçamento</Text>
           {!readOnly && (
@@ -206,14 +212,16 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
           </View>
           <View style={styles.valueItem}>
             <Text style={[styles.valueLabel, { color: colors.textSecondary }]}>Restante</Text>
-            <Text style={[styles.valueAmount, { color: isOverBudget ? colors.error : colors.success }]}>
+            <Text
+              style={[styles.valueAmount, { color: isOverBudget ? colors.error : colors.success }]}
+            >
               {formatBRL(Math.abs(remaining))}
             </Text>
           </View>
         </View>
 
         {isOverBudget && (
-          <Text style={[styles.warningText, { color: colors.error }]}> 
+          <Text style={[styles.warningText, { color: colors.error }]}>
             ⚠️ Você excedeu o orçamento em {formatBRL(Math.abs(remaining))}
           </Text>
         )}
@@ -221,9 +229,14 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
 
       {/* Lista de Gastos */}
       {expenses.length > 0 && (
-        <View style={[styles.expensesCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.expensesCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Gastos Recentes</Text>
-          {expenses.slice(0, 5).map(expense => {
+          {expenses.slice(0, 5).map((expense) => {
             const categoryInfo = getCategoryInfo(expense.category);
             return (
               <View
@@ -270,8 +283,8 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
             style={{ flex: 1, justifyContent: 'flex-end' }}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
           >
-            <View style={[styles.modalContent, { backgroundColor: colors.card }]}> 
-              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}> 
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>Adicionar Gasto</Text>
                 <TouchableOpacity onPress={() => setShowAddModal(false)}>
                   <Text style={[styles.closeButton, { color: colors.textSecondary }]}>✕</Text>
@@ -282,13 +295,14 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 {/* Seleção de Categoria */}
                 <Text style={[styles.label, { color: colors.text }]}>Categoria</Text>
                 <View style={styles.categoriesGrid}>
-                  {CATEGORIES.map(cat => (
+                  {CATEGORIES.map((cat) => (
                     <TouchableOpacity
                       key={cat.id}
                       style={[
                         styles.categoryChip,
                         {
-                          backgroundColor: selectedCategory === cat.id ? colors.primary : colors.background,
+                          backgroundColor:
+                            selectedCategory === cat.id ? colors.primary : colors.background,
                           borderColor: selectedCategory === cat.id ? colors.primary : colors.border,
                         },
                       ]}
@@ -310,7 +324,14 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 {/* Descrição */}
                 <Text style={[styles.label, { color: colors.text }]}>Descrição</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
                   placeholder="Ex: Jantar no restaurante X"
                   placeholderTextColor={colors.textSecondary}
                   value={description}
@@ -321,11 +342,18 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                 {/* Valor */}
                 <Text style={[styles.label, { color: colors.text }]}>Valor ({currency})</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
                   placeholder="R$ 0,00"
                   placeholderTextColor={colors.textSecondary}
                   value={amount}
-                  onChangeText={text => setAmount(maskBRLInput(text))}
+                  onChangeText={(text) => setAmount(maskBRLInput(text))}
                   keyboardType="numeric"
                   maxLength={20}
                   returnKeyType="done"
@@ -333,9 +361,13 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
               </ScrollView>
 
               {/* Botões */}
-              <View style={[styles.modalFooter, { borderTopColor: colors.border }]}> 
+              <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
                 <TouchableOpacity
-                  style={[styles.button, styles.cancelButton, { backgroundColor: colors.background }]}
+                  style={[
+                    styles.button,
+                    styles.cancelButton,
+                    { backgroundColor: colors.background },
+                  ]}
                   onPress={() => setShowAddModal(false)}
                   disabled={loading}
                 >
@@ -349,7 +381,9 @@ export const BudgetTracker: React.FC<BudgetTrackerProps> = ({
                   {loading ? (
                     <ActivityIndicator color={colors.white} size="small" />
                   ) : (
-                    <Text style={[styles.submitButtonText, { color: colors.white }]}>Adicionar</Text>
+                    <Text style={[styles.submitButtonText, { color: colors.white }]}>
+                      Adicionar
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>

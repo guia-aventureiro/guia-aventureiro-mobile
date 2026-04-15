@@ -1,5 +1,6 @@
 // mobile/src/services/offlineService.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { Itinerary } from '../types';
 import { Platform } from 'react-native';
 import env from '../config/env';
@@ -24,7 +25,7 @@ class OfflineService {
    */
   async checkConnection(): Promise<boolean> {
     const now = Date.now();
-    
+
     // Se checou há menos de 10 segundos, retornar cache
     if (now - this.lastCheck < this.checkInterval) {
       return this.isOnline;
@@ -36,19 +37,19 @@ class OfflineService {
       // No web, usar navigator.onLine primeiro
       if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
         this.isOnline = navigator.onLine;
-        
+
         // Se diz que está online, validar com API
         if (this.isOnline) {
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000);
-            
+
             // Tenta fazer requisição para nossa própria API (sem problemas de CORS)
             const response = await fetch(`${env.apiUrl.replace('/api', '')}/health`, {
               method: 'GET',
               signal: controller.signal,
             });
-            
+
             clearTimeout(timeoutId);
             this.isOnline = response.ok;
           } catch {
@@ -56,19 +57,33 @@ class OfflineService {
             this.isOnline = false;
           }
         }
-        
+
         return this.isOnline;
       }
-      
-      // No mobile, tentar requisição para a API
+
+      // No mobile, usar NetInfo como fonte principal para evitar falso offline.
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected === false || netInfo.isInternetReachable === false) {
+        this.isOnline = false;
+        return false;
+      }
+
+      // Se o dispositivo reporta conectividade, considerar online.
+      // Fallback abaixo cobre casos em que o estado está indeterminado.
+      if (netInfo.isConnected === true || netInfo.isInternetReachable === true) {
+        this.isOnline = true;
+        return true;
+      }
+
+      // Fallback: tentar requisição para a API quando o estado do NetInfo estiver indefinido.
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
+
       const response = await fetch(`${env.apiUrl.replace('/api', '')}/health`, {
         method: 'GET',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       this.isOnline = response.ok;
       return this.isOnline;
@@ -95,7 +110,7 @@ class OfflineService {
         console.warn('⚠️ Tentativa de salvar roteiros não-array:', typeof itineraries);
         return;
       }
-      
+
       const json = JSON.stringify(itineraries);
       await AsyncStorage.setItem(OFFLINE_ITINERARIES_KEY, json);
       console.log(`💾 ${itineraries.length} roteiros salvos offline`);

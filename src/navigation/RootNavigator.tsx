@@ -19,7 +19,7 @@ export const RootNavigator = () => {
   const { user, isLoading, isTransitioning } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const navigationRef = useRef<any>(null);
-  const routeNameRef = useRef<string>();
+  const routeNameRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     checkOnboarding();
@@ -48,21 +48,23 @@ export const RootNavigator = () => {
   useEffect(() => {
     const handleDeepLink = (url: string) => {
       console.log('Link recebido:', url);
-      
+
       // Tenta extrair shareId de ambos os formatos:
       // 1. Deep link: guiaaventureiro://shared/{shareId}
       // 2. Universal link: https://landing-page-patrickavilas-projects.vercel.app/r/{shareId}
       let shareId: string | null = null;
-      
+
       const deepLinkMatch = url.match(/guiaaventureiro:\/\/shared\/([a-f0-9-]+)/i);
-      const universalLinkMatch = url.match(/https?:\/\/(share\.guiaaventureiro\.app|landing-page.*\.vercel\.app)\/r\/([a-f0-9-]+)/i);
-      
+      const universalLinkMatch = url.match(
+        /https?:\/\/(share\.guiaaventureiro\.app|landing-page.*\.vercel\.app)\/r\/([a-f0-9-]+)/i
+      );
+
       if (deepLinkMatch && deepLinkMatch[1]) {
         shareId = deepLinkMatch[1];
       } else if (universalLinkMatch && universalLinkMatch[2]) {
         shareId = universalLinkMatch[2];
       }
-      
+
       if (shareId) {
         console.log('ShareId extraído:', shareId);
         // Aguarda a navegação estar pronta
@@ -95,9 +97,7 @@ export const RootNavigator = () => {
 
   const checkOnboarding = async () => {
     try {
-      const skipOnboarding = await AsyncStorage.getItem(
-        '@guia_aventureiro:skip_onboarding'
-      );
+      const skipOnboarding = await AsyncStorage.getItem('@guia_aventureiro:skip_onboarding');
       setShowOnboarding(!skipOnboarding);
     } catch (error) {
       console.error('Erro ao verificar onboarding:', error);
@@ -134,12 +134,12 @@ export const RootNavigator = () => {
           routeNameRef.current = currentRouteName;
         }}
       >
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator id="Root" screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Main">
             {() => (user ? <MainNavigator /> : <AuthNavigator />)}
           </Stack.Screen>
-          <Stack.Screen 
-            name="SharedItinerary" 
+          <Stack.Screen
+            name="SharedItinerary"
             component={SharedItineraryScreen}
             options={{
               presentation: 'card',

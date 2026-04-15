@@ -1,8 +1,12 @@
 // mobile/src/config/env.ts
 
 // API URLs - can be overridden via environment variables
-const DEV_API_URL = process.env.EXPO_PUBLIC_LOCAL_API_URL || process.env.EXPO_PUBLIC_DEV_API_URL || 'http://localhost:3000/api';
-const PROD_API_URL = process.env.EXPO_PUBLIC_PROD_API_URL || 'https://guia-aventureiro-api-new.onrender.com/api';
+const DEV_API_URL =
+  process.env.EXPO_PUBLIC_LOCAL_API_URL ||
+  process.env.EXPO_PUBLIC_DEV_API_URL ||
+  'http://localhost:3000/api';
+const PROD_API_URL =
+  process.env.EXPO_PUBLIC_PROD_API_URL || 'https://guia-aventureiro-api-new.onrender.com/api';
 const APP_ENV = (process.env.EXPO_PUBLIC_APP_ENV || 'local').toLowerCase();
 
 // Google Maps Key - NEVER hardcoded, read from .env.local

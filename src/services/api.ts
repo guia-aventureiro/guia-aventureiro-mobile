@@ -17,16 +17,22 @@ class SimpleEventEmitter {
 
   off(event: string, callback: (...args: any[]) => void) {
     if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+    this.listeners[event] = this.listeners[event].filter((cb) => cb !== callback);
   }
 
   emit(event: string, ...args: any[]) {
     if (!this.listeners[event]) return;
-    this.listeners[event].forEach(callback => callback(...args));
+    this.listeners[event].forEach((callback) => callback(...args));
   }
 }
 
 export const apiEvents = new SimpleEventEmitter();
+
+const RETRYABLE_GATEWAY_STATUS = new Set([502, 503, 504]);
+const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
+const MAX_GATEWAY_RETRIES = 2;
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const api = axios.create({
   baseURL: ENV.apiUrl,
@@ -51,7 +57,7 @@ const getSecureToken = async (key: string): Promise<string | null> => {
     if (secureToken) {
       return secureToken;
     }
-    
+
     // Fallback to AsyncStorage for migration (old way) - but don't use beyond migration
     const asyncToken = await AsyncStorage.getItem(key);
     if (asyncToken && secureToken === null) {
@@ -59,7 +65,7 @@ const getSecureToken = async (key: string): Promise<string | null> => {
       await SecureStore.setItemAsync(key, asyncToken);
       // Don't delete from AsyncStorage immediately - let it expire naturally
     }
-    
+
     return asyncToken;
   } catch (error) {
     if (__DEV__) {
@@ -110,6 +116,29 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
+    const method = (originalRequest?.method || 'get').toLowerCase();
+    const status = error.response?.status;
+
+    // Retry automático para erros transitórios comuns de cold start (Render free).
+    if (RETRYABLE_METHODS.has(method)) {
+      const shouldRetryGateway = status && RETRYABLE_GATEWAY_STATUS.has(status);
+      const shouldRetryNetwork = !error.response;
+
+      if (shouldRetryGateway || shouldRetryNetwork) {
+        originalRequest._gatewayRetryCount = (originalRequest._gatewayRetryCount || 0) + 1;
+
+        if (originalRequest._gatewayRetryCount <= MAX_GATEWAY_RETRIES) {
+          const waitMs = 1500 * Math.pow(2, originalRequest._gatewayRetryCount - 1);
+          if (__DEV__) {
+            console.warn(
+              `⏳ API indisponível temporariamente (${status || 'network'}). Tentando novamente em ${waitMs}ms...`
+            );
+          }
+          await delay(waitMs);
+          return api(originalRequest);
+        }
+      }
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -132,10 +161,10 @@ api.interceptors.response.use(
         await removeSecureToken('accessToken');
         await removeSecureToken('refreshToken');
         await AsyncStorage.removeItem('user');
-        
+
         // Emitir evento para forçar logout no app
         apiEvents.emit('unauthorized');
-        
+
         return Promise.reject(refreshError);
       }
     }

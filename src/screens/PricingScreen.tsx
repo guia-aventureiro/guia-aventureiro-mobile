@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,6 +19,7 @@ import { Button } from '../components/Button';
 import { PlanBadge } from '../components/PlanBadge';
 import { Plan, BillingCycle, PlanDetails } from '../types/subscription';
 import { showAlert } from '../components/CustomAlert';
+import * as subscriptionService from '../services/subscriptionService';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 64;
@@ -25,7 +27,11 @@ const CARD_WIDTH = width - 64;
 export const PricingScreen = ({ navigation }: any) => {
   const colors = useColors();
   const { data: plansData, isLoading: loadingPlans } = usePlans();
-  const { data: subscriptionData, isLoading: loadingSub, refetch: refetchSubscription } = useMySubscription();
+  const {
+    data: subscriptionData,
+    isLoading: loadingSub,
+    refetch: refetchSubscription,
+  } = useMySubscription();
   const upgradeMutation = useUpgrade();
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
@@ -53,7 +59,7 @@ export const PricingScreen = ({ navigation }: any) => {
       navigation.navigate('UpgradeWebview');
     } catch (error: any) {
       console.error('Erro ao criar checkout:', error);
-      
+
       if (error.response?.data?.error === 'already_premium') {
         showAlert('Aviso', 'Você já possui o plano Premium ativo!');
       } else {
@@ -131,10 +137,7 @@ export const PricingScreen = ({ navigation }: any) => {
         },
       ]);
     } catch (error: any) {
-      showAlert(
-        'Erro',
-        error.response?.data?.message || 'Erro ao fazer upgrade. Tente novamente.'
-      );
+      showAlert('Erro', error.response?.data?.message || 'Erro ao fazer upgrade. Tente novamente.');
     }
   };
 
@@ -173,9 +176,7 @@ export const PricingScreen = ({ navigation }: any) => {
           ) : (
             <>
               <Text style={[styles.currency, { color: colors.textSecondary }]}>R$</Text>
-              <Text style={[styles.priceMain, { color: colors.text }]}>
-                {Math.floor(price)}
-              </Text>
+              <Text style={[styles.priceMain, { color: colors.text }]}>{Math.floor(price)}</Text>
               <Text style={[styles.priceCents, { color: colors.textSecondary }]}>
                 ,{(price % 1).toFixed(2).split('.')[1]}
               </Text>
@@ -247,7 +248,7 @@ export const PricingScreen = ({ navigation }: any) => {
     },
   ];
 
-  const renderFaqItem = (item: typeof faqItems[0], index: number) => {
+  const renderFaqItem = (item: (typeof faqItems)[0], index: number) => {
     const isExpanded = expandedFaq === index;
 
     return (
@@ -274,7 +275,10 @@ export const PricingScreen = ({ navigation }: any) => {
 
   if (loadingPlans || loadingSub) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -286,7 +290,10 @@ export const PricingScreen = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -296,10 +303,7 @@ export const PricingScreen = ({ navigation }: any) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Billing Cycle Toggle */}
         <View style={styles.cycleContainer}>
           <TouchableOpacity
@@ -349,9 +353,7 @@ export const PricingScreen = ({ navigation }: any) => {
         </View>
 
         {/* Plans */}
-        <View style={styles.plansContainer}>
-          {plans.map(plan => renderPlanCard(plan))}
-        </View>
+        <View style={styles.plansContainer}>{plans.map((plan) => renderPlanCard(plan))}</View>
 
         {/* Manage Subscription (apenas para Premium) */}
         {currentPlan === 'premium' && (
@@ -387,8 +389,8 @@ export const PricingScreen = ({ navigation }: any) => {
         <View style={[styles.footerInfo, { backgroundColor: colors.card }]}>
           <Ionicons name="information-circle" size={20} color={colors.primary} />
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            Você pode cancelar sua assinatura a qualquer momento. O acesso continuará até o fim
-            do período pago.
+            Você pode cancelar sua assinatura a qualquer momento. O acesso continuará até o fim do
+            período pago.
           </Text>
         </View>
       </ScrollView>

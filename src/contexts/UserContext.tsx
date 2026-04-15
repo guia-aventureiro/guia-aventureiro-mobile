@@ -39,8 +39,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       const { data } = await api.get('/subscriptions/my-subscription');
       setSubscription(data);
-    } catch (error) {
-      console.error('Erro ao carregar assinatura:', error);
+    } catch (error: any) {
+      // 401 antes do login e durante refresh de token pode acontecer; evitar ruído no log.
+      if (error?.response?.status !== 401) {
+        console.error('Erro ao carregar assinatura:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,8 +58,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     loadSubscription();
   }, []);
 
-  const isPremium =
-    subscription?.plan === 'premium' && subscription?.status === 'active';
+  const isPremium = subscription?.plan === 'premium' && subscription?.status === 'active';
 
   return (
     <UserContext.Provider value={{ subscription, loading, isPremium, refreshUser }}>

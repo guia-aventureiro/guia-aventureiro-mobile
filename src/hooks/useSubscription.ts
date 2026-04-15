@@ -29,7 +29,7 @@ export const useMySubscription = () => {
     queryKey: ['subscription'],
     queryFn: getMySubscription,
     staleTime: 0, // Sempre buscar dados atualizados
-    cacheTime: 0, // Não manter em cache
+    gcTime: 0, // Não manter em cache
     refetchOnMount: 'always', // Sempre refetch ao montar
     refetchOnWindowFocus: true, // Refetch ao voltar para o app
   });
@@ -43,7 +43,7 @@ export const useUsage = () => {
     queryKey: ['usage'],
     queryFn: getUsage,
     staleTime: 0, // Sempre buscar dados atualizados
-    cacheTime: 0, // Não manter em cache
+    gcTime: 0, // Não manter em cache
     refetchOnMount: 'always', // Sempre refetch ao montar
     refetchOnWindowFocus: true, // Refetch ao voltar para o app
   });
@@ -56,13 +56,8 @@ export const useUpgrade = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      targetPlan,
-      billingCycle,
-    }: {
-      targetPlan: Plan;
-      billingCycle: BillingCycle;
-    }) => confirmUpgrade(targetPlan, billingCycle),
+    mutationFn: ({ targetPlan, billingCycle }: { targetPlan: Plan; billingCycle: BillingCycle }) =>
+      confirmUpgrade(targetPlan, billingCycle),
     onSuccess: () => {
       // Invalidar queries para atualizar dados
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
@@ -107,14 +102,18 @@ export const useCanPerformAction = () => {
 
   const canCreateItinerary = () => {
     if (!data) return null;
-    return data.usage.itineraries.unlimited || 
-           data.usage.itineraries.current < data.usage.itineraries.limit;
+    return (
+      data.usage.itineraries.unlimited ||
+      data.usage.itineraries.current < data.usage.itineraries.limit
+    );
   };
 
   const canUseAI = () => {
     if (!data) return null;
-    return data.usage.aiGenerations.unlimited || 
-           data.usage.aiGenerations.current < data.usage.aiGenerations.limit;
+    return (
+      data.usage.aiGenerations.unlimited ||
+      data.usage.aiGenerations.current < data.usage.aiGenerations.limit
+    );
   };
 
   const canUploadPhoto = () => {

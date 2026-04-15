@@ -9,10 +9,7 @@
     "userInterfaceStyle": "automatic",
     "description": "Planeje suas viagens com Inteligência Artificial. Roteiros personalizados, controle de orçamento e muito mais!",
     "privacy": "public",
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    "platforms": ["ios", "android"],
     "primaryColor": "#005A8D",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -22,9 +19,7 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.guiaaventureiro.app",
       "supportsTablet": true,
@@ -59,10 +54,7 @@
               "pathPrefix": "/r"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "permissions": [

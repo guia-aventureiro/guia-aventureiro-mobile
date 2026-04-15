@@ -23,7 +23,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 2,
       staleTime: 0, // Sempre buscar dados frescos (as queries individuais podem sobrescrever)
-      cacheTime: 1000 * 60 * 5, // Manter em cache por 5 minutos
+      gcTime: 1000 * 60 * 5, // Manter em cache por 5 minutos
       refetchOnMount: true, // Sempre refetch ao montar
       refetchOnWindowFocus: true, // Refetch ao voltar para o app
     },
@@ -33,7 +33,7 @@ const queryClient = new QueryClient({
 // Componente interno que acessa o tema
 const AppContent = () => {
   const { theme } = useTheme();
-  
+
   return (
     <>
       <RootNavigator />

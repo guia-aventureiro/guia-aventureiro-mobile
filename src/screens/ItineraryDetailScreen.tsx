@@ -1,4 +1,4 @@
-// mobile/src/screens/ItineraryDetailScreen.tsx
+﻿// mobile/src/screens/ItineraryDetailScreen.tsx
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
@@ -32,7 +32,8 @@ import { LimitModal } from '../components/LimitModal';
 import { LimitError } from '../types/subscription';
 // Utilitário para formatar valores em Real brasileiro
 function formatBRL(value: number | string) {
-  let num = typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
+  let num =
+    typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
   if (isNaN(num)) num = 0;
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -47,7 +48,8 @@ const getMockItinerary = (id: string): Itinerary | null => {
       destination: {
         city: 'Paris',
         country: 'França',
-        coverImage: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=200&fit=crop'
+        coverImage:
+          'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=200&fit=crop',
       },
       startDate: '2026-06-15',
       endDate: '2026-06-20',
@@ -57,18 +59,18 @@ const getMockItinerary = (id: string): Itinerary | null => {
         name: 'Ana Silva',
         email: 'ana.silva@email.com',
         isPremium: false,
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: '2025-01-01T00:00:00Z',
       },
       budget: {
         level: 'medio',
         estimatedTotal: 5000,
         currency: 'BRL',
-        spent: 2340
+        spent: 2340,
       },
       preferences: {
         interests: ['cultura', 'gastronomia'],
         travelStyle: 'casal',
-        pace: 'moderado'
+        pace: 'moderado',
       },
       days: [
         {
@@ -83,10 +85,10 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Check-in no hotel',
               description: 'Hotel Le Marais - próximo ao metrô',
               location: { name: 'Le Marais', address: 'Rue des Archives, 75004 Paris' },
-              category: 'acomodacao',
+              category: 'hospedagem',
               duration: 60,
               cost: 450,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-2',
@@ -97,7 +99,7 @@ const getMockItinerary = (id: string): Itinerary | null => {
               category: 'atracao',
               duration: 180,
               cost: 85,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-3',
@@ -105,14 +107,14 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Jantar no Bistrot Paul Bert',
               description: 'Restaurante tradicional francês',
               location: { name: 'Bistrot Paul Bert', address: '18 Rue Paul Bert, 75011 Paris' },
-              category: 'refeicao',
+              category: 'alimentacao',
               duration: 120,
               cost: 180,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
           dailyBudget: 715,
-          notes: 'Comprar Paris Museum Pass'
+          notes: 'Comprar Paris Museum Pass',
         },
         {
           _id: 'day-2',
@@ -129,22 +131,25 @@ const getMockItinerary = (id: string): Itinerary | null => {
               category: 'atracao',
               duration: 240,
               cost: 0,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-5',
               time: '15:00',
               title: 'Basílica de Sacré-Cœur',
               description: 'Vista panorâmica de Paris',
-              location: { name: 'Sacré-Cœur', address: '35 Rue du Chevalier de la Barre, 75018 Paris' },
+              location: {
+                name: 'Sacré-Cœur',
+                address: '35 Rue du Chevalier de la Barre, 75018 Paris',
+              },
               category: 'atracao',
               duration: 120,
               cost: 0,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
-          dailyBudget: 150
-        }
+          dailyBudget: 150,
+        },
       ],
       collaborators: [],
       status: 'confirmado',
@@ -153,11 +158,25 @@ const getMockItinerary = (id: string): Itinerary | null => {
       likes: [],
       views: 1543,
       expenses: [
-        { _id: 'exp-1', category: 'transporte', description: 'Passagem aérea', amount: 1800, date: '2026-05-01', createdAt: '2026-05-01T10:00:00Z' },
-        { _id: 'exp-2', category: 'acomodacao', description: 'Hotel 5 noites', amount: 2250, date: '2026-05-15', createdAt: '2026-05-15T14:00:00Z' }
+        {
+          _id: 'exp-1',
+          category: 'transporte',
+          description: 'Passagem aérea',
+          amount: 1800,
+          date: '2026-05-01',
+          createdAt: '2026-05-01T10:00:00Z',
+        },
+        {
+          _id: 'exp-2',
+          category: 'hospedagem',
+          description: 'Hotel 5 noites',
+          amount: 2250,
+          date: '2026-05-15',
+          createdAt: '2026-05-15T14:00:00Z',
+        },
       ],
       createdAt: '2026-01-15T10:00:00Z',
-      updatedAt: '2026-02-08T14:30:00Z'
+      updatedAt: '2026-02-08T14:30:00Z',
     },
     'mock-2': {
       _id: 'mock-2',
@@ -165,7 +184,8 @@ const getMockItinerary = (id: string): Itinerary | null => {
       destination: {
         city: 'El Calafate',
         country: 'Argentina',
-        coverImage: 'https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=400&h=200&fit=crop'
+        coverImage:
+          'https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=400&h=200&fit=crop',
       },
       startDate: '2026-07-10',
       endDate: '2026-07-17',
@@ -175,18 +195,18 @@ const getMockItinerary = (id: string): Itinerary | null => {
         name: 'Carlos Mendes',
         email: 'carlos.mendes@email.com',
         isPremium: true,
-        createdAt: '2025-02-01T00:00:00Z'
+        createdAt: '2025-02-01T00:00:00Z',
       },
       budget: {
         level: 'medio',
         estimatedTotal: 8000,
         currency: 'BRL',
-        spent: 3200
+        spent: 3200,
       },
       preferences: {
         interests: ['aventura', 'natureza'],
         travelStyle: 'amigos',
-        pace: 'intenso'
+        pace: 'intenso',
       },
       days: [
         {
@@ -200,11 +220,14 @@ const getMockItinerary = (id: string): Itinerary | null => {
               time: '10:00',
               title: 'Chegada ao aeroporto',
               description: 'Voo de Buenos Aires para El Calafate',
-              location: { name: 'Aeroporto El Calafate', address: 'Ruta Provincial 11, El Calafate' },
+              location: {
+                name: 'Aeroporto El Calafate',
+                address: 'Ruta Provincial 11, El Calafate',
+              },
               category: 'transporte',
               duration: 180,
               cost: 800,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-p2',
@@ -212,10 +235,10 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Check-in Hosteria',
               description: 'Acomodação com vista para o lago Argentino',
               location: { name: 'Hosteria Kalenshen', address: 'Av. Libertador 1090, El Calafate' },
-              category: 'acomodacao',
+              category: 'hospedagem',
               duration: 60,
               cost: 600,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-p3',
@@ -223,13 +246,13 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Passeio pela cidade',
               description: 'Conhecer o centro e comprar equipamentos',
               location: { name: 'Centro El Calafate', address: 'Av. del Libertador' },
-              category: 'passeio',
+              category: 'atracao',
               duration: 180,
               cost: 0,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
-          dailyBudget: 1400
+          dailyBudget: 1400,
         },
         {
           _id: 'day-p2',
@@ -246,7 +269,7 @@ const getMockItinerary = (id: string): Itinerary | null => {
               category: 'atracao',
               duration: 480,
               cost: 450,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-p5',
@@ -254,13 +277,13 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Jantar típico argentino',
               description: 'Cordeiro patagônico',
               location: { name: 'La Tablita', address: 'Coronel Rosales 28, El Calafate' },
-              category: 'refeicao',
+              category: 'alimentacao',
               duration: 120,
               cost: 220,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
-          dailyBudget: 670
+          dailyBudget: 670,
         },
         {
           _id: 'day-p3',
@@ -273,16 +296,19 @@ const getMockItinerary = (id: string): Itinerary | null => {
               time: '06:00',
               title: 'Trilha Base Las Torres',
               description: 'Trekking de 8h até a base das torres',
-              location: { name: 'Torres del Paine', address: 'Parque Nacional Torres del Paine, Chile' },
-              category: 'aventura',
+              location: {
+                name: 'Torres del Paine',
+                address: 'Parque Nacional Torres del Paine, Chile',
+              },
+              category: 'atracao',
               duration: 480,
               cost: 380,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
           dailyBudget: 380,
-          notes: 'Levar lanche e água. Acordar cedo!'
-        }
+          notes: 'Levar lanche e água. Acordar cedo!',
+        },
       ],
       collaborators: [],
       status: 'planejando',
@@ -291,11 +317,25 @@ const getMockItinerary = (id: string): Itinerary | null => {
       likes: [],
       views: 2891,
       expenses: [
-        { _id: 'exp-p1', category: 'transporte', description: 'Passagens aéreas', amount: 2400, date: '2026-06-01', createdAt: '2026-06-01T10:00:00Z' },
-        { _id: 'exp-p2', category: 'acomodacao', description: 'Hosteria 7 noites', amount: 4200, date: '2026-06-15', createdAt: '2026-06-15T14:00:00Z' }
+        {
+          _id: 'exp-p1',
+          category: 'transporte',
+          description: 'Passagens aéreas',
+          amount: 2400,
+          date: '2026-06-01',
+          createdAt: '2026-06-01T10:00:00Z',
+        },
+        {
+          _id: 'exp-p2',
+          category: 'hospedagem',
+          description: 'Hosteria 7 noites',
+          amount: 4200,
+          date: '2026-06-15',
+          createdAt: '2026-06-15T14:00:00Z',
+        },
       ],
       createdAt: '2026-01-20T08:15:00Z',
-      updatedAt: '2026-02-09T11:20:00Z'
+      updatedAt: '2026-02-09T11:20:00Z',
     },
     'mock-3': {
       _id: 'mock-3',
@@ -303,7 +343,8 @@ const getMockItinerary = (id: string): Itinerary | null => {
       destination: {
         city: 'Tóquio',
         country: 'Japão',
-        coverImage: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop'
+        coverImage:
+          'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop',
       },
       startDate: '2026-05-01',
       endDate: '2026-05-06',
@@ -313,18 +354,18 @@ const getMockItinerary = (id: string): Itinerary | null => {
         name: 'Marina Kobayashi',
         email: 'marina.k@email.com',
         isPremium: false,
-        createdAt: '2025-03-01T00:00:00Z'
+        createdAt: '2025-03-01T00:00:00Z',
       },
       budget: {
         level: 'medio',
         estimatedTotal: 6000,
         currency: 'BRL',
-        spent: 1800
+        spent: 1800,
       },
       preferences: {
         interests: ['gastronomia', 'cultura'],
         travelStyle: 'solo',
-        pace: 'moderado'
+        pace: 'moderado',
       },
       days: [
         {
@@ -339,10 +380,10 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Check-in capsule hotel',
               description: 'Hotel cápsula em Shinjuku',
               location: { name: 'Nine Hours Shinjuku', address: '3-10-2 Shinjuku, Shinjuku-ku' },
-              category: 'acomodacao',
+              category: 'hospedagem',
               duration: 60,
               cost: 180,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-t2',
@@ -353,7 +394,7 @@ const getMockItinerary = (id: string): Itinerary | null => {
               category: 'atracao',
               duration: 90,
               cost: 0,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-t3',
@@ -361,13 +402,13 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Jantar ramen tradicional',
               description: 'Ichiran Ramen - experiência autêntica',
               location: { name: 'Ichiran Shibuya', address: '1-22-7 Jinnan, Shibuya-ku' },
-              category: 'refeicao',
+              category: 'alimentacao',
               duration: 60,
               cost: 80,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
-          dailyBudget: 260
+          dailyBudget: 260,
         },
         {
           _id: 'day-t2',
@@ -384,7 +425,7 @@ const getMockItinerary = (id: string): Itinerary | null => {
               category: 'atracao',
               duration: 180,
               cost: 120,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-t5',
@@ -392,10 +433,10 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Aula de sushi',
               description: 'Workshop prático de fazer sushi',
               location: { name: 'Tokyo Sushi Academy', address: 'Shinjuku, Tokyo' },
-              category: 'atividade',
+              category: 'atracao',
               duration: 180,
               cost: 350,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-t6',
@@ -403,15 +444,15 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Izakaya experience',
               description: 'Bar japonês tradicional',
               location: { name: 'Omoide Yokocho', address: 'Shinjuku, Tokyo' },
-              category: 'refeicao',
+              category: 'alimentacao',
               duration: 120,
               cost: 150,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
           dailyBudget: 620,
-          notes: 'Acordar cedo para pegar o mercado!'
-        }
+          notes: 'Acordar cedo para pegar o mercado!',
+        },
       ],
       collaborators: [],
       status: 'confirmado',
@@ -420,10 +461,17 @@ const getMockItinerary = (id: string): Itinerary | null => {
       likes: ['user'],
       views: 1234,
       expenses: [
-        { _id: 'exp-t1', category: 'transporte', description: 'Passagem aérea', amount: 3500, date: '2026-03-01', createdAt: '2026-03-01T10:00:00Z' }
+        {
+          _id: 'exp-t1',
+          category: 'transporte',
+          description: 'Passagem aérea',
+          amount: 3500,
+          date: '2026-03-01',
+          createdAt: '2026-03-01T10:00:00Z',
+        },
       ],
       createdAt: '2026-02-01T12:00:00Z',
-      updatedAt: '2026-02-09T16:45:00Z'
+      updatedAt: '2026-02-09T16:45:00Z',
     },
     'mock-4': {
       _id: 'mock-4',
@@ -431,7 +479,8 @@ const getMockItinerary = (id: string): Itinerary | null => {
       destination: {
         city: 'Tulum',
         country: 'México',
-        coverImage: 'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=400&h=200&fit=crop'
+        coverImage:
+          'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=400&h=200&fit=crop',
       },
       startDate: '2026-08-20',
       endDate: '2026-08-27',
@@ -441,18 +490,18 @@ const getMockItinerary = (id: string): Itinerary | null => {
         name: 'Pedro Santos',
         email: 'pedro.santos@email.com',
         isPremium: true,
-        createdAt: '2024-12-01T00:00:00Z'
+        createdAt: '2024-12-01T00:00:00Z',
       },
       budget: {
         level: 'luxo',
         estimatedTotal: 12000,
         currency: 'BRL',
-        spent: 5600
+        spent: 5600,
       },
       preferences: {
         interests: ['praia', 'mergulho'],
         travelStyle: 'casal',
-        pace: 'relaxado'
+        pace: 'relaxado',
       },
       days: [
         {
@@ -467,10 +516,10 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Check-in resort',
               description: 'Resort all-inclusive na praia',
               location: { name: 'Dreams Tulum', address: 'Carretera Tulum-Boca Paila Km 7' },
-              category: 'acomodacao',
+              category: 'hospedagem',
               duration: 60,
               cost: 1200,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-c2',
@@ -478,10 +527,10 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Praia do hotel',
               description: 'Relaxar e curtir o mar caribenho',
               location: { name: 'Praia Dreams Tulum', address: 'Tulum Beach' },
-              category: 'praia',
+              category: 'atracao',
               duration: 180,
               cost: 0,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-c3',
@@ -489,13 +538,13 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Jantar mexicano',
               description: 'Restaurante à beira-mar',
               location: { name: 'Hartwood', address: 'Tulum Beach Road' },
-              category: 'refeicao',
+              category: 'alimentacao',
               duration: 120,
               cost: 450,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
-          dailyBudget: 1650
+          dailyBudget: 1650,
         },
         {
           _id: 'day-c2',
@@ -512,7 +561,7 @@ const getMockItinerary = (id: string): Itinerary | null => {
               category: 'atracao',
               duration: 180,
               cost: 180,
-              isCompleted: false
+              isCompleted: false,
             },
             {
               _id: 'act-c5',
@@ -520,14 +569,14 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Mergulho no Gran Cenote',
               description: 'Snorkel em águas cristalinas',
               location: { name: 'Gran Cenote', address: 'Carretera Tulum-Cobá Km 4' },
-              category: 'aventura',
+              category: 'atracao',
               duration: 180,
               cost: 280,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
           dailyBudget: 460,
-          notes: 'Levar protetor solar biodegradável'
+          notes: 'Levar protetor solar biodegradável',
         },
         {
           _id: 'day-c3',
@@ -541,14 +590,14 @@ const getMockItinerary = (id: string): Itinerary | null => {
               title: 'Tour Akumal',
               description: 'Nadar com tartarugas marinhas',
               location: { name: 'Akumal Bay', address: 'Akumal, Quintana Roo' },
-              category: 'aventura',
+              category: 'atracao',
               duration: 300,
               cost: 520,
-              isCompleted: false
-            }
+              isCompleted: false,
+            },
           ],
-          dailyBudget: 520
-        }
+          dailyBudget: 520,
+        },
       ],
       collaborators: [],
       status: 'confirmado',
@@ -557,12 +606,26 @@ const getMockItinerary = (id: string): Itinerary | null => {
       likes: [],
       views: 4567,
       expenses: [
-        { _id: 'exp-c1', category: 'transporte', description: 'Passagens aéreas', amount: 3200, date: '2026-07-01', createdAt: '2026-07-01T10:00:00Z' },
-        { _id: 'exp-c2', category: 'acomodacao', description: 'Resort all-inclusive', amount: 8400, date: '2026-07-15', createdAt: '2026-07-15T14:00:00Z' }
+        {
+          _id: 'exp-c1',
+          category: 'transporte',
+          description: 'Passagens aéreas',
+          amount: 3200,
+          date: '2026-07-01',
+          createdAt: '2026-07-01T10:00:00Z',
+        },
+        {
+          _id: 'exp-c2',
+          category: 'hospedagem',
+          description: 'Resort all-inclusive',
+          amount: 8400,
+          date: '2026-07-15',
+          createdAt: '2026-07-15T14:00:00Z',
+        },
       ],
       createdAt: '2026-01-10T09:30:00Z',
-      updatedAt: '2026-02-10T08:15:00Z'
-    }
+      updatedAt: '2026-02-10T08:15:00Z',
+    },
   };
 
   return mockItineraries[id] || null;
@@ -591,11 +654,11 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     const _isMockPreview = id.startsWith('mock-');
     const _isOwner = user && itinerary?.owner && itinerary.owner._id === user._id;
     const _isPublicPreview = !_isOwner && !_isMockPreview;
-    
+
     return {
       isOwner: _isOwner,
       isMockPreview: _isMockPreview,
-      isPublicPreview: _isPublicPreview
+      isPublicPreview: _isPublicPreview,
     };
   }, [id, user, itinerary]);
 
@@ -609,21 +672,21 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
 
       let isMounted = true;
       isLoadingRef.current = true;
-      
+
       const fetchItinerary = async () => {
         try {
           setLoading(true);
-          
+
           // Validar se ID existe
           if (!id) {
             throw new Error('ID do roteiro não fornecido');
           }
-          
+
           // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
           if (id.startsWith('mock-')) {
-            await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay
+            await new Promise((resolve) => setTimeout(resolve, 500)); // Simula delay
             const mockData = getMockItinerary(id);
-            
+
             if (mockData && isMounted) {
               setItinerary(mockData);
               setLoading(false);
@@ -634,9 +697,9 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
             }
           }
           // ===================================================================
-          
+
           const data = await itineraryService.getById(id);
-          
+
           if (isMounted) {
             setItinerary(data);
             setLoading(false);
@@ -652,7 +715,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
             } else if ((error as any)?.response?.status === 401) {
               errorMessage = 'Você não tem permissão para ver este roteiro.';
             }
-            
+
             showError(errorMessage);
             setLoading(false);
             setTimeout(() => {
@@ -667,7 +730,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       };
 
       fetchItinerary();
-      
+
       return () => {
         isMounted = false;
         isLoadingRef.current = false;
@@ -684,10 +747,10 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
 
     try {
       isLoadingRef.current = true;
-      
+
       // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
       if (id.startsWith('mock-')) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
         const mockData = getMockItinerary(id);
         if (mockData) {
           setItinerary(mockData);
@@ -695,7 +758,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         }
       }
       // ===================================================================
-      
+
       const data = await itineraryService.getById(id);
       setItinerary(data);
     } catch (error) {
@@ -720,14 +783,17 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const handleDelete = async () => {
     // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
     if (isMockPreview) {
-      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo. Crie seus próprios roteiros para editá-los!');
+      showAlert(
+        'Roteiro de Demonstração',
+        'Este é um roteiro de exemplo. Crie seus próprios roteiros para editá-los!'
+      );
       return;
     }
     if (!isOwner) {
       showAlert('Sem Permissão', 'Apenas o criador do roteiro pode excluí-lo.');
       return;
     }
-    
+
     console.log('🗑️ Botão de deletar clicado. ID:', id);
     showAlert(
       'Excluir Roteiro',
@@ -743,12 +809,12 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
               await itineraryService.delete(id);
               console.log('✅ Roteiro deletado com sucesso');
               success('Roteiro excluído com sucesso!');
-              
+
               // Forçar reset completo das queries
               await queryClient.resetQueries({ queryKey: ['usage'] });
               await queryClient.resetQueries({ queryKey: ['subscription'] });
               await queryClient.resetQueries({ queryKey: ['itineraries'] });
-              
+
               // Removido callback onListChange. Dashboard recarrega via useFocusEffect.
               setTimeout(() => {
                 navigation.goBack();
@@ -756,8 +822,8 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
             } catch (err: any) {
               showError(err.response?.data?.message || 'Erro ao excluir roteiro');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -765,57 +831,57 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const handleDuplicate = async () => {
     // Prevenir ações em roteiros mockados
     if (isMockPreview) {
-      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo. Use o botão "Usar este Roteiro" para adicioná-lo!');
+      showAlert(
+        'Roteiro de Demonstração',
+        'Este é um roteiro de exemplo. Use o botão "Usar este Roteiro" para adicioná-lo!'
+      );
       return;
     }
     // Permitir duplicar roteiros de outros usuários (isOwner pode ser false)
-    
+
     console.log('📋 Botão de duplicar clicado. ID:', id);
     try {
       console.log('🔄 Duplicando roteiro:', id);
       const duplicate = await itineraryService.duplicate(id);
       console.log('✅ Roteiro duplicado com sucesso. Novo ID:', duplicate._id);
       success('Roteiro duplicado com sucesso!');
-      
+
       // Forçar reset completo das queries (remove do cache e refetch)
       console.log('🔄 Resetando queries...');
       await queryClient.resetQueries({ queryKey: ['usage'] });
       await queryClient.resetQueries({ queryKey: ['subscription'] });
       await queryClient.resetQueries({ queryKey: ['itineraries'] });
       console.log('✅ Queries resetadas');
-      
-      showAlert(
-        'Roteiro Duplicado',
-        'Deseja visualizar a cópia agora?',
-        [
-          { text: 'Depois', style: 'cancel' },
-          { 
-            text: 'Ver Agora', 
-            onPress: () => {
-              navigation.goBack();
-              setTimeout(() => {
-                navigation.navigate('ItineraryDetail', { id: duplicate._id });
-              }, 100);
-            }
-          }
-        ]
-      );
+
+      showAlert('Roteiro Duplicado', 'Deseja visualizar a cópia agora?', [
+        { text: 'Depois', style: 'cancel' },
+        {
+          text: 'Ver Agora',
+          onPress: () => {
+            navigation.goBack();
+            setTimeout(() => {
+              navigation.navigate('ItineraryDetail', { id: duplicate._id });
+            }, 100);
+          },
+        },
+      ]);
     } catch (error: any) {
       // Verificar se é erro de limite (403)
       if (error.response?.status === 403) {
         const errorData = error.response?.data;
-        const isLimitError = errorData?.error === 'limit_reached' || errorData?.error === 'monthly_limit_reached';
-        
+        const isLimitError =
+          errorData?.error === 'limit_reached' || errorData?.error === 'monthly_limit_reached';
+
         if (isLimitError) {
           console.log('ℹ️ Limite de criação atingido - mostrando modal de upgrade');
-          
+
           // Usar o LimitModal padronizado
           setLimitError(errorData);
           setShowLimitModal(true);
           return;
         }
       }
-      
+
       // Erro REAL (não é limite)
       console.error('❌ Erro ao duplicar roteiro:', error);
       showError(error.response?.data?.message || 'Não foi possível duplicar o roteiro.');
@@ -831,7 +897,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     if (isMockPreview) {
       throw new Error('Este é um roteiro de demonstração.');
     }
-    
+
     try {
       await itineraryService.addRating(id, ratingData);
       success('Avaliação salva com sucesso!');
@@ -854,16 +920,16 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     if (!isOwner) {
       throw new Error('Apenas o criador do roteiro pode adicionar gastos.');
     }
-    
+
     try {
       console.log('💰 Adicionando gasto ao roteiro:', id);
       const result = await budgetService.addExpense(id, expenseData);
       console.log('✅ Gasto adicionado com sucesso:', result);
-      
+
       success('Gasto adicionado com sucesso!');
-      
+
       // Recarregar roteiro de forma assíncrona sem bloquear
-      loadItinerary().catch(err => {
+      loadItinerary().catch((err) => {
         console.error('⚠️ Erro ao recarregar roteiro após adicionar gasto:', err);
         // Não propagar o erro - o gasto já foi adicionado com sucesso
       });
@@ -881,16 +947,16 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     if (!isOwner) {
       throw new Error('Apenas o criador do roteiro pode editar gastos.');
     }
-    
+
     try {
       console.log('✏️ Atualizando gasto:', expenseId);
       await budgetService.updateExpense(id, expenseId, data);
       console.log('✅ Gasto atualizado com sucesso');
-      
+
       success('Gasto atualizado com sucesso!');
-      
+
       // Recarregar roteiro de forma assíncrona sem bloquear
-      loadItinerary().catch(err => {
+      loadItinerary().catch((err) => {
         console.error('⚠️ Erro ao recarregar roteiro após atualizar gasto:', err);
       });
     } catch (error: any) {
@@ -907,16 +973,16 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
     if (!isOwner) {
       throw new Error('Apenas o criador do roteiro pode remover gastos.');
     }
-    
+
     try {
       console.log('🗑️ Removendo gasto:', expenseId);
       await budgetService.deleteExpense(id, expenseId);
       console.log('✅ Gasto removido com sucesso');
-      
+
       success('Gasto removido com sucesso!');
-      
+
       // Recarregar roteiro de forma assíncrona sem bloquear
-      loadItinerary().catch(err => {
+      loadItinerary().catch((err) => {
         console.error('⚠️ Erro ao recarregar roteiro após remover gasto:', err);
       });
     } catch (error: any) {
@@ -928,7 +994,10 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const handleEdit = () => {
     // Prevenir ações em roteiros mockados ou não pertencentes ao usuário
     if (isMockPreview) {
-      showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo. Use o botão "Usar este Roteiro" para adicioná-lo!');
+      showAlert(
+        'Roteiro de Demonstração',
+        'Este é um roteiro de exemplo. Use o botão "Usar este Roteiro" para adicioná-lo!'
+      );
       return;
     }
     if (!isOwner) {
@@ -950,16 +1019,19 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   const handleUseItinerary = async () => {
     // Prevenir usar roteiros mockados
     if (isMockPreview) {
-      showAlert('Roteiro de Demonstração', 'Roteiros de demonstração não podem ser copiados. Explore os roteiros públicos para encontrar inspiração!');
+      showAlert(
+        'Roteiro de Demonstração',
+        'Roteiros de demonstração não podem ser copiados. Explore os roteiros públicos para encontrar inspiração!'
+      );
       return;
     }
-    
+
     try {
       console.log('🔄 Usando roteiro (duplicando):', id);
       const duplicate = await itineraryService.duplicate(id);
       console.log('✅ Roteiro duplicado com sucesso. Novo ID:', duplicate._id);
       success('Roteiro adicionado aos seus roteiros!');
-      
+
       // Navegar para o roteiro duplicado onde poderá editar
       navigation.replace('ItineraryDetail', { id: duplicate._id });
     } catch (error: any) {
@@ -986,29 +1058,28 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'left', 'right']}
+    >
       <ScrollView style={styles.content}>
         {/* Hero com botões integrados */}
-        <View style={[styles.hero, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View
+          style={[styles.hero, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+        >
           {isOwner ? (
             <>
               {/* Layout para proprietário: seta voltar separada + botões de ação */}
               <View style={styles.heroHeader}>
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  style={styles.backButtonHero}
-                >
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonHero}>
                   <Text style={[styles.backButtonTextHero, { color: colors.text }]}>‹</Text>
                 </TouchableOpacity>
-                
+
                 <View style={styles.headerActions}>
                   <TouchableOpacity onPress={handleShare} style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>🔗</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleEdit}
-                    style={styles.iconButton}
-                  >
+                  <TouchableOpacity onPress={handleEdit} style={styles.iconButton}>
                     <Text style={styles.iconButtonText}>✏️</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={handleDuplicate} style={styles.iconButton}>
@@ -1042,14 +1113,18 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
 
           {/* Resto das informações (mesmo para todos) */}
           <Text style={[styles.destination, { color: colors.textSecondary }]}>
-            {itinerary.destination ? `${itinerary.destination.city || 'N/A'}, ${itinerary.destination.country || 'N/A'}` : 'Destino não informado'}
+            {itinerary.destination
+              ? `${itinerary.destination.city || 'N/A'}, ${itinerary.destination.country || 'N/A'}`
+              : 'Destino não informado'}
           </Text>
           <Text style={[styles.dates, { color: colors.textSecondary }]}>
             {startDate} - {endDate}
           </Text>
           <View style={styles.badges}>
             <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.badgeText, { color: colors.white }]}>{itinerary.duration} dias</Text>
+              <Text style={[styles.badgeText, { color: colors.white }]}>
+                {itinerary.duration} dias
+              </Text>
             </View>
             <View style={[styles.badge, { backgroundColor: colors.primary }]}>
               <Text style={[styles.badgeText, { color: colors.white }]}>
@@ -1121,22 +1196,31 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
               <View style={[styles.ratingCard, { backgroundColor: colors.card }]}>
                 <RatingStars rating={itinerary.rating.score} size={32} />
                 {itinerary.rating.comment && (
-                  <Text style={[styles.ratingComment, { color: colors.text }]}>{itinerary.rating.comment}</Text>
+                  <Text style={[styles.ratingComment, { color: colors.text }]}>
+                    {itinerary.rating.comment}
+                  </Text>
                 )}
                 {itinerary.rating.ratedAt && (
                   <Text style={[styles.ratingDate, { color: colors.textSecondary }]}>
-                    Avaliado em {format(new Date(itinerary.rating.ratedAt), "dd/MM/yyyy")}
+                    Avaliado em {format(new Date(itinerary.rating.ratedAt), 'dd/MM/yyyy')}
                   </Text>
                 )}
               </View>
             ) : (
               <TouchableOpacity
-                style={[styles.addRatingButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[
+                  styles.addRatingButton,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
                 onPress={() => setRatingModalVisible(true)}
               >
                 <Text style={styles.addRatingIcon}>⭐</Text>
-                <Text style={[styles.addRatingText, { color: colors.text }]}>Como foi sua viagem?</Text>
-                <Text style={[styles.addRatingSubtext, { color: colors.textSecondary }]}>Toque para avaliar</Text>
+                <Text style={[styles.addRatingText, { color: colors.text }]}>
+                  Como foi sua viagem?
+                </Text>
+                <Text style={[styles.addRatingSubtext, { color: colors.textSecondary }]}>
+                  Toque para avaliar
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1153,10 +1237,14 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
               onPhotosSelected={(photos) => {
                 try {
                   // Atualizar o estado local do roteiro com as novas fotos
-                  setItinerary(prev => prev ? { 
-                    ...prev, 
-                    rating: { ...prev.rating, photos } 
-                  } : prev);
+                  setItinerary((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          rating: { ...prev.rating, photos },
+                        }
+                      : prev
+                  );
                 } catch (error) {
                   console.error('Erro ao atualizar fotos no estado:', error);
                 }
@@ -1169,99 +1257,125 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         {/* Dias */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Roteiro dia a dia</Text>
-          {itinerary.days && Array.isArray(itinerary.days) && itinerary.days.map((day, index) => (
-            <View key={day._id} style={[styles.dayCard, { backgroundColor: colors.card }]}>
-              <View style={styles.dayHeader}>
-                <Text style={[styles.dayNumber, { color: colors.primary }]}>Dia {day.dayNumber}</Text>
-                <Text style={[styles.dayDate, { color: colors.textSecondary }]}>
-                  {format(new Date(day.date), "dd 'de' MMMM", { locale: ptBR })}
-                </Text>
-              </View>
-              <Text style={[styles.dayTitle, { color: colors.text }]}>{day.title}</Text>
-
-              {day.activities && Array.isArray(day.activities) && day.activities.map((activity, actIndex) => (
-                <View key={activity._id} style={[styles.activityCard, { backgroundColor: colors.background }]}>
-                  <View style={styles.activityHeader}>
-                    <Text style={[styles.activityTime, { color: colors.primary }]}>{activity.time}</Text>
-                    <Text style={styles.activityCategory}>
-                      {activity.category === 'transporte'
-                        ? '🚗'
-                        : activity.category === 'alimentacao'
-                          ? '🍽️'
-                          : activity.category === 'atracao'
-                            ? '🎭'
-                            : activity.category === 'hospedagem'
-                              ? '🏨'
-                              : activity.category === 'compras'
-                                ? '🛍️'
-                                : '📍'}
-                    </Text>
-                  </View>
-                  <Text style={[styles.activityTitle, { color: colors.text }]}>{activity.title}</Text>
-                  {activity.description && (
-                    <Text style={[styles.activityDescription, { color: colors.textSecondary }]}>{activity.description}</Text>
-                  )}
-                  {activity.location && (
-                    <Text style={[styles.activityLocation, { color: colors.textSecondary }]}>📍 {activity.location.name}</Text>
-                  )}
-                  <View style={styles.activityFooter}>
-                    <Text style={[styles.activityCost, { color: colors.primary }]}> 
-                      {formatBRL(activity.estimatedCost)}
-                    </Text>
-
-      <RatingModal
-        visible={ratingModalVisible}
-        onClose={() => setRatingModalVisible(false)}
-        onSubmit={handleSubmitRating}
-        existingRating={itinerary?.rating}
-        itineraryId={id}
-      />
-                    <Text style={[styles.activityDuration, { color: colors.textSecondary }]}>{activity.duration}min</Text>
-                  </View>
+          {itinerary.days &&
+            Array.isArray(itinerary.days) &&
+            itinerary.days.map((day, index) => (
+              <View key={day._id} style={[styles.dayCard, { backgroundColor: colors.card }]}>
+                <View style={styles.dayHeader}>
+                  <Text style={[styles.dayNumber, { color: colors.primary }]}>
+                    Dia {day.dayNumber}
+                  </Text>
+                  <Text style={[styles.dayDate, { color: colors.textSecondary }]}>
+                    {format(new Date(day.date), "dd 'de' MMMM", { locale: ptBR })}
+                  </Text>
                 </View>
-              ))}
-            </View>
-          ))}
+                <Text style={[styles.dayTitle, { color: colors.text }]}>{day.title}</Text>
+
+                {day.activities &&
+                  Array.isArray(day.activities) &&
+                  day.activities.map((activity, actIndex) => (
+                    <View
+                      key={activity._id}
+                      style={[styles.activityCard, { backgroundColor: colors.background }]}
+                    >
+                      <View style={styles.activityHeader}>
+                        <Text style={[styles.activityTime, { color: colors.primary }]}>
+                          {activity.time}
+                        </Text>
+                        <Text style={styles.activityCategory}>
+                          {activity.category === 'transporte'
+                            ? '🚗'
+                            : activity.category === 'alimentacao'
+                              ? '🍽️'
+                              : activity.category === 'atracao'
+                                ? '🎭'
+                                : activity.category === 'hospedagem'
+                                  ? '🏨'
+                                  : activity.category === 'compras'
+                                    ? '🛍️'
+                                    : '📍'}
+                        </Text>
+                      </View>
+                      <Text style={[styles.activityTitle, { color: colors.text }]}>
+                        {activity.title}
+                      </Text>
+                      {activity.description && (
+                        <Text style={[styles.activityDescription, { color: colors.textSecondary }]}>
+                          {activity.description}
+                        </Text>
+                      )}
+                      {activity.location && (
+                        <Text style={[styles.activityLocation, { color: colors.textSecondary }]}>
+                          📍 {activity.location.name}
+                        </Text>
+                      )}
+                      <View style={styles.activityFooter}>
+                        <Text style={[styles.activityCost, { color: colors.primary }]}>
+                          {formatBRL(activity.estimatedCost)}
+                        </Text>
+
+                        <RatingModal
+                          visible={ratingModalVisible}
+                          onClose={() => setRatingModalVisible(false)}
+                          onSubmit={handleSubmitRating}
+                          existingRating={itinerary?.rating}
+                          itineraryId={id}
+                        />
+                        <Text style={[styles.activityDuration, { color: colors.textSecondary }]}>
+                          {activity.duration}min
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+              </View>
+            ))}
         </View>
 
         {/* Colaboradores */}
         {itinerary.collaborators.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Colaboradores</Text>
-            {itinerary.collaborators && Array.isArray(itinerary.collaborators) && itinerary.collaborators.map((collab) => (
-              <View key={collab.user._id} style={[styles.collaboratorCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.collaboratorAvatar, { backgroundColor: colors.primary }]}>
-                  <Text style={[styles.collaboratorAvatarText, { color: '#FFFFFF' }]}>
-                    {collab.user.name.charAt(0).toUpperCase()}
-                  </Text>
+            {itinerary.collaborators &&
+              Array.isArray(itinerary.collaborators) &&
+              itinerary.collaborators.map((collab) => (
+                <View
+                  key={collab.user._id}
+                  style={[styles.collaboratorCard, { backgroundColor: colors.card }]}
+                >
+                  <View style={[styles.collaboratorAvatar, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.collaboratorAvatarText, { color: '#FFFFFF' }]}>
+                      {collab.user.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.collaboratorInfo}>
+                    <Text style={[styles.collaboratorName, { color: colors.text }]}>
+                      {collab.user.name}
+                    </Text>
+                    <Text style={[styles.collaboratorPermission, { color: colors.textSecondary }]}>
+                      {collab.permission === 'edit' ? '✏️ Pode editar' : '👁️ Apenas visualizar'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.collaboratorInfo}>
-                  <Text style={[styles.collaboratorName, { color: colors.text }]}>{collab.user.name}</Text>
-                  <Text style={[styles.collaboratorPermission, { color: colors.textSecondary }]}>
-                    {collab.permission === 'edit' ? '✏️ Pode editar' : '👁️ Apenas visualizar'}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              ))}
           </View>
         )}
       </ScrollView>
-      
+
       <ShareModal
         visible={shareModalVisible}
         onClose={() => setShareModalVisible(false)}
         itineraryId={id}
         itineraryTitle={itinerary?.title || ''}
-        existingShareLink={itinerary?.shareLink}
+        existingShareLink={itinerary?.publicLink}
         onUpgradePress={() => navigation.navigate('Pricing')}
         onSuccess={(message) => {
           success(message);
-          loadItinerary().catch(err => {
+          loadItinerary().catch((err) => {
             console.error('⚠️ Erro ao recarregar após revogar:', err);
           });
         }}
       />
-      
+
       <RatingModal
         visible={ratingModalVisible}
         onClose={() => setRatingModalVisible(false)}
@@ -1270,14 +1384,9 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         itineraryId={id}
         onUpgradePress={() => navigation.navigate('Pricing')}
       />
-      
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        visible={toast.visible}
-        onHide={hideToast}
-      />
-      
+
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
+
       <Tooltip
         visible={showBudgetTooltip}
         message="💰 Acompanhe seus gastos! Adicione despesas para ter controle total do seu orçamento de viagem."
@@ -1358,7 +1467,8 @@ const styles = StyleSheet.create({
   hero: {
     padding: 24,
     borderBottomWidth: 1,
-  },  heroHeader: {
+  },
+  heroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1422,8 +1532,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  aiBadge: {
-  },
+  aiBadge: {},
   aiText: {
     fontSize: 14,
     fontWeight: '600',

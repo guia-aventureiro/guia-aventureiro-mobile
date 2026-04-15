@@ -29,14 +29,14 @@ export const itineraryService = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params?.order) queryParams.append('order', params.order);
-    
+
     const response = await api.get(`/roteiros?${queryParams.toString()}`);
-    
+
     // Se tem paginação na resposta, retornar objeto paginado
     if (response.data.pagination) {
       return response.data as PaginatedResponse;
     }
-    
+
     // Senão, retornar array simples (backward compatibility)
     return Array.isArray(response.data) ? response.data : response.data.itineraries;
   },
@@ -46,34 +46,35 @@ export const itineraryService = {
     if (id.startsWith('mock-')) {
       throw new Error('Use dados mockados localmente - não chame a API para IDs mock-*');
     }
-    
+
     const response = await api.get(`/roteiros/${id}`);
     const itinerary = response.data;
-    
+
     // Analytics: roteiro visualizado
     await analyticsService.logItineraryView(
       id,
       `${itinerary.destination?.city}, ${itinerary.destination?.country}`
     );
-    
+
     return itinerary;
   },
 
   async create(data: Partial<Itinerary>): Promise<Itinerary> {
     const response = await api.post('/roteiros', data);
     const itinerary = response.data.itinerary;
-    
+
     // Analytics: roteiro criado
-    await analyticsService.logItineraryCreate(
-      `${data.destination?.city}, ${data.destination?.country}`,
-      data.days?.length
-    );
-    
+    await analyticsService.logItineraryCreated({
+      destination: `${data.destination?.city}, ${data.destination?.country}`,
+      duration: data.days?.length,
+      generatedByAI: false,
+    });
+
     return itinerary;
   },
 
   async generateWithAI(data: {
-    destination: { city: string; country: string };
+    destination: { city: string; country: string; coverImage?: string };
     startDate: string;
     endDate: string;
     budget?: { level: string; currency: string };
@@ -86,16 +87,16 @@ export const itineraryService = {
 
   async update(id: string, data: Partial<Itinerary>): Promise<Itinerary> {
     const response = await api.put(`/roteiros/${id}`, data);
-    
+
     // Analytics: roteiro editado
     await analyticsService.logItineraryEdit(id);
-    
+
     return response.data.itinerary;
   },
 
   async delete(id: string): Promise<void> {
     await api.delete(`/roteiros/${id}`);
-    
+
     // Analytics: roteiro deletado
     await analyticsService.logItineraryDelete(id);
   },
@@ -103,14 +104,18 @@ export const itineraryService = {
   async duplicate(id: string): Promise<Itinerary> {
     const response = await api.post(`/roteiros/${id}/duplicate`);
     const newItinerary = response.data.itinerary;
-    
+
     // Analytics: roteiro duplicado
     await analyticsService.logItineraryDuplicate(id, newItinerary._id);
-    
+
     return newItinerary;
   },
 
-  async addCollaborator(id: string, email: string, permission: 'view' | 'edit'): Promise<Itinerary> {
+  async addCollaborator(
+    id: string,
+    email: string,
+    permission: 'view' | 'edit'
+  ): Promise<Itinerary> {
     const response = await api.post(`/roteiros/${id}/collaborators`, {
       email,
       permission,
@@ -128,10 +133,10 @@ export const itineraryService = {
     data: { score: number; comment?: string; photos?: string[] }
   ): Promise<Itinerary> {
     const response = await api.post(`/roteiros/${id}/rating`, data);
-    
+
     // Analytics: avaliação enviada
     await analyticsService.logRatingSubmit(data.score, id);
-    
+
     return response.data;
   },
 
@@ -149,10 +154,10 @@ export const itineraryService = {
 
   async generateShareLink(id: string): Promise<{ shareLink: string; fullUrl: string }> {
     const response = await api.post(`/roteiros/${id}/share`);
-    
+
     // Analytics: roteiro compartilhado
     await analyticsService.logItineraryShare(id, 'link');
-    
+
     return response.data;
   },
 

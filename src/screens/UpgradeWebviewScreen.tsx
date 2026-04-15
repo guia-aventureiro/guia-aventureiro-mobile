@@ -19,11 +19,13 @@ export default function UpgradeWebviewScreen() {
   const navigation = useNavigation();
   const colors = useColors();
   const { refreshUser } = useUser();
-  
+
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const webViewRef = useRef<WebView>(null);
+
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   useEffect(() => {
     createCheckoutSession();
@@ -35,9 +37,11 @@ export default function UpgradeWebviewScreen() {
       setError(null);
 
       const { data } = await api.post('/checkout/create-session');
-      
+
       if (data.successUrl && data.successUrl.includes('localhost')) {
-        throw new Error('Backend retornou successUrl com localhost. Gere novo tunnel (localtunnel/ngrok) e tente novamente.');
+        throw new Error(
+          'Backend retornou successUrl com localhost. Gere novo tunnel (localtunnel/ngrok) e tente novamente.'
+        );
       }
 
       if (data.url) {
@@ -47,15 +51,11 @@ export default function UpgradeWebviewScreen() {
       }
     } catch (err: any) {
       console.error('Erro ao criar checkout session:', err);
-      
+
       const errorMessage = err.response?.data?.error || 'Erro ao criar sessão de pagamento';
       setError(errorMessage);
-      
-      showAlert(
-        'Erro',
-        errorMessage,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+
+      showAlert('Erro', errorMessage, [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export default function UpgradeWebviewScreen() {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       // Don't log payment messages containing sensitive data
-      
+
       if (message.type === 'PAYMENT_SUCCESS') {
         handlePaymentSuccess(message.sessionId);
       } else if (message.type === 'PAYMENT_CANCELLED') {
@@ -90,16 +90,36 @@ export default function UpgradeWebviewScreen() {
 
   const handlePaymentSuccess = async (sessionId: string) => {
     if (!sessionId) return;
-    
+
     // Don't log session IDs or payment details
     if (__DEV__) {
       // Safe to log in dev: payment step completed
     }
-    
+
     try {
-      await api.get(`/checkout/verify/${sessionId}`);
+      // Retry curto para cobrir eventual atraso entre checkout completo e processamento final da assinatura.
+      let verified = false;
+      let lastError: any = null;
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await api.get(`/checkout/verify/${sessionId}`);
+          verified = true;
+          break;
+        } catch (error: any) {
+          lastError = error;
+          if (attempt < 3) {
+            await wait(1200 * attempt);
+          }
+        }
+      }
+
+      if (!verified) {
+        throw lastError || new Error('Falha ao verificar pagamento');
+      }
+
       await refreshUser();
-      
+
       showAlert(
         '🎉 Bem-vindo ao Premium!',
         'Sua assinatura foi ativada com sucesso. Aproveite todos os recursos!',
@@ -108,8 +128,8 @@ export default function UpgradeWebviewScreen() {
             text: 'Começar',
             onPress: () => {
               navigation.goBack();
-            }
-          }
+            },
+          },
         ]
       );
     } catch (err) {
@@ -127,7 +147,7 @@ export default function UpgradeWebviewScreen() {
     if (__DEV__) {
       // Internal tracking: payment cancelled
     }
-    
+
     showAlert(
       'Pagamento Cancelado',
       'Você cancelou o processo de upgrade. Tente novamente quando quiser!',
@@ -145,7 +165,7 @@ export default function UpgradeWebviewScreen() {
         handlePaymentSuccess(sessionId);
       }
     }
-    
+
     // Detectar cancelamento pela URL
     if (url.includes('/checkout/cancel') || url.includes('/payment/cancel')) {
       handlePaymentCancel();
@@ -161,7 +181,12 @@ export default function UpgradeWebviewScreen() {
       return false;
     }
 
-    if (url.includes('/checkout/success') || url.includes('/checkout/cancel') || url.includes('/payment/success') || url.includes('/payment/cancel')) {
+    if (
+      url.includes('/checkout/success') ||
+      url.includes('/checkout/cancel') ||
+      url.includes('/payment/success') ||
+      url.includes('/payment/cancel')
+    ) {
       processUrl(url);
       return false;
     }
@@ -175,7 +200,7 @@ export default function UpgradeWebviewScreen() {
       'Não foi possível carregar a página de pagamento. Verifique sua conexão.',
       [
         { text: 'Tentar Novamente', onPress: createCheckoutSession },
-        { text: 'Voltar', onPress: () => navigation.goBack() }
+        { text: 'Voltar', onPress: () => navigation.goBack() },
       ]
     );
   };
@@ -190,7 +215,7 @@ export default function UpgradeWebviewScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Upgrade Premium</Text>
           <View style={{ width: 60 }} />
         </View>
-        
+
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -211,10 +236,10 @@ export default function UpgradeWebviewScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Upgrade Premium</Text>
           <View style={{ width: 60 }} />
         </View>
-        
+
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
             onPress={createCheckoutSession}
           >
