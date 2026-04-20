@@ -8,7 +8,6 @@
     "scheme": "guiaaventureiro",
     "userInterfaceStyle": "automatic",
     "description": "Planeje suas viagens com Inteligência Artificial. Roteiros personalizados, controle de orçamento e muito mais!",
-    "privacy": "public",
     "platforms": ["ios", "android"],
     "primaryColor": "#005A8D",
     "splash": {
@@ -24,10 +23,7 @@
       "bundleIdentifier": "com.guiaaventureiro.app",
       "supportsTablet": true,
       "buildNumber": "1.0.0",
-      "associatedDomains": [
-        "applinks:share.guiaaventureiro.app",
-        "applinks:share.guiaaventureiro.app"
-      ],
+      "associatedDomains": ["applinks:share.guiaaventureiro.app"],
       "infoPlist": {
         "NSCameraUsageDescription": "Permitir acesso à câmera para tirar fotos dos seus roteiros.",
         "NSPhotoLibraryUsageDescription": "Permitir acesso à galeria para adicionar fotos aos roteiros.",
@@ -63,10 +59,7 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "POST_NOTIFICATIONS",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -89,7 +82,13 @@
           "mode": "production"
         }
       ],
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantId": "merchant.com.guiaaventureiro"
+        }
+      ]
     ],
     "extra": {
       "eas": {
