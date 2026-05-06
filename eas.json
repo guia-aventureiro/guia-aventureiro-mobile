@@ -15,11 +15,6 @@
     },
     "preview": {
       "distribution": "internal",
-      "prebuildCommand": "bash eas-hooks/pre-build.sh",
-      "env": {
-        "GOOGLE_SERVICES_JSON": "@GOOGLE_SERVICES_JSON",
-        "GOOGLE_SERVICE_INFO_PLIST": "@GOOGLE_SERVICE_INFO_PLIST"
-      },
       "ios": {
         "simulator": false
       },

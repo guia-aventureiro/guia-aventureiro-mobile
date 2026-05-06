@@ -11,7 +11,7 @@ import { AchievementsScreen } from '../screens/AchievementsScreen';
 import { ExploreScreen } from '../screens/ExploreScreen';
 import { useColors } from '../hooks/useColors';
 import { Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditItineraryScreen } from '../screens/EditItineraryScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { RecommendationsScreen } from '../screens/RecommendationsScreen';
@@ -134,6 +134,7 @@ const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
 export const MainNavigator = () => {
   const colors = useColors();
   const { unreadCount } = useNotifications();
+  const insets = useSafeAreaInsets();
   
   return (
     <Tab.Navigator
@@ -143,9 +144,9 @@ export const MainNavigator = () => {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          paddingBottom: 20,
+          paddingBottom: insets.bottom + 4,
           paddingTop: 8,
-          height: 85,
+          height: 60 + insets.bottom,
           borderTopWidth: 1,
           borderTopColor: colors.border,
           backgroundColor: colors.card,
