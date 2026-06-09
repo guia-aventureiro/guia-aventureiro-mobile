@@ -119,7 +119,7 @@ export const authService = {
 
   async getProfile(): Promise<User> {
     const response = await api.get('/auth/profile');
-    return response.data;
+    return response.data.user;
   },
 
   async updateProfile(name: string, avatar?: string, preferences?: any, publicProfile?: boolean) {

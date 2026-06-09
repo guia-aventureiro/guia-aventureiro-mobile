@@ -4,6 +4,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { Itinerary } from '../types';
 import { Platform } from 'react-native';
 import env from '../config/env';
+import api from './api';
 
 const OFFLINE_ITINERARIES_KEY = '@guia_aventureiro:offline_itineraries';
 const PENDING_SYNC_KEY = '@guia_aventureiro:pending_sync';
@@ -229,16 +230,41 @@ class OfflineService {
 
     console.log(`🔄 Sincronizando ${pending.length} ações pendentes...`);
 
-    // Aqui você chamaria as APIs reais
-    // Por enquanto, apenas limpa as ações pendentes
+    const remainingActions: PendingSyncAction[] = [];
+
     for (const action of pending) {
       try {
-        // TODO: Implementar chamadas de API reais
+        const targetId = action.data?.id || action.id;
+
+        if (action.type === 'create') {
+          await api.post('/roteiros', action.data);
+        }
+
+        if (action.type === 'update') {
+          if (!targetId) {
+            throw new Error('Ação de update sem ID');
+          }
+          await api.put(`/roteiros/${targetId}`, action.data?.payload || action.data || {});
+        }
+
+        if (action.type === 'delete') {
+          if (!targetId) {
+            throw new Error('Ação de delete sem ID');
+          }
+          await api.delete(`/roteiros/${targetId}`);
+        }
+
         console.log(`✅ Sincronizado: ${action.type} ${action.id}`);
-        await this.removePendingSync(action.id);
       } catch (error) {
         console.error(`❌ Erro ao sincronizar ${action.id}:`, error);
+        remainingActions.push(action);
       }
+    }
+
+    await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(remainingActions));
+
+    if (remainingActions.length > 0) {
+      console.log(`⚠️ ${remainingActions.length} ações permaneceram pendentes`);
     }
   }
 

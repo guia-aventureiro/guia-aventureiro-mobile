@@ -110,7 +110,7 @@ export default function UpgradeScreen() {
         <View style={[styles.header, { backgroundColor: colors.success }]}> 
           <Text style={styles.title}>💎 Premium</Text>
           <View style={styles.priceBox}>
-            <Text style={[styles.price, { color: colors.white }]}>R$ 9,90</Text>
+            <Text style={[styles.price, { color: colors.white }]}>R$ 19,90</Text>
             <Text style={styles.period}>por mês</Text>
           </View>
         </View>
@@ -120,10 +120,10 @@ export default function UpgradeScreen() {
           <Text style={[styles.benefitTitle, { color: colors.text }]}>O que você ganha:</Text>
           <BenefitItem icon="✓" text="50 roteiros de viagem" iconColor={colors.success} textColor={colors.textSecondary} />
           <BenefitItem icon="✓" text="Gerações de IA ilimitadas" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Upload ilimitado de fotos" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Colaboradores ilimitados" iconColor={colors.success} textColor={colors.textSecondary} />
+          <BenefitItem icon="✓" text="Upload de até 20 fotos por roteiro" iconColor={colors.success} textColor={colors.textSecondary} />
+          <BenefitItem icon="✓" text="Compartilhamento público de roteiros" iconColor={colors.success} textColor={colors.textSecondary} />
           <BenefitItem icon="✓" text="Planejador de orçamento avançado" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Suporte prioritário" iconColor={colors.success} textColor={colors.textSecondary} />
+          <BenefitItem icon="✓" text="Exportação de roteiros em PDF" iconColor={colors.success} textColor={colors.textSecondary} />
         </View>
 
         {/* Campo de Cartão */}

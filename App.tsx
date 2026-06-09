@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { LogBox, ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 // import { StripeProvider } from '@stripe/stripe-react-native'; // Desabilitado: usando Webview Checkout
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
@@ -13,9 +13,6 @@ import { UserProvider } from './src/contexts/UserContext';
 import { AlertProvider } from './src/components/AlertProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 // import api from './src/services/api'; // Não precisa buscar key do Stripe
-
-// Desabilitar avisos/erros visuais no app (mantém nos logs do console)
-LogBox.ignoreAllLogs(true);
 
 // Configurar React Query
 const queryClient = new QueryClient({
