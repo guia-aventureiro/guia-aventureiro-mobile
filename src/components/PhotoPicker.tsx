@@ -38,7 +38,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
   const currentPlan = subscriptionData?.subscription?.plan || 'free';
-  
+
   // Determinar limite de fotos baseado no plano (vem de subscription.planDetails)
   const photoLimit = subscriptionData?.subscription?.planDetails?.limits?.photos || 0;
 
@@ -55,21 +55,21 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
         InteractionManager.runAfterInteractions(() => {
           showAlert(
             'Recurso Premium',
-            'Upload de fotos está disponível apenas para assinantes Premium (até 20 fotos) e Pro (até 50 fotos).',
+            'Upload de fotos está disponível apenas para assinantes Premium (até 20 fotos por roteiro).',
             [
               { text: 'Cancelar', style: 'cancel' },
               {
                 text: 'Ver Planos',
                 onPress: () => {
                   onUpgradePress?.();
-                }
-              }
+                },
+              },
             ]
           );
         });
         return;
       }
-      
+
       if (photos.length >= photoLimit) {
         InteractionManager.runAfterInteractions(() => {
           showAlert(
@@ -81,8 +81,8 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
                 text: 'Ver Planos',
                 onPress: () => {
                   onUpgradePress?.();
-                }
-              }
+                },
+              },
             ]
           );
         });
@@ -140,7 +140,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
       }
     } catch (error: any) {
       setUploading(false);
-      
+
       // Verificar se é erro de limite de plano
       if (error?.response?.status === 403 && error?.response?.data?.error === 'limit_reached') {
         console.log('ℹ️ Limite de fotos atingido:', error.response.data);
@@ -150,14 +150,16 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
             error.response.data.message || 'Você atingiu o limite de fotos do seu plano.',
             [
               { text: 'Ver Planos', onPress: () => onUpgradePress?.() },
-              { text: 'OK', style: 'cancel' }
+              { text: 'OK', style: 'cancel' },
             ]
           );
         });
       } else if (error?.message?.includes('Network request failed') && retries > 0) {
         // Retry automático em caso de perda de conexão
-        console.log(`⚠️ Upload falhou por network, tentando novamente... (${retries} tentativas restantes)`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Aguardar 1 segundo
+        console.log(
+          `⚠️ Upload falhou por network, tentando novamente... (${retries} tentativas restantes)`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Aguardar 1 segundo
         return uploadPhoto(uri, retries - 1);
       } else {
         // Log do erro mas não quebra a UI
@@ -177,7 +179,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
   const uploadPhotos = async (uris: string[]) => {
     try {
       setUploading(true);
-      
+
       // Aviso para não sair do app
       if (uris.length > 5) {
         InteractionManager.runAfterInteractions(() => {
@@ -187,7 +189,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
           );
         });
       }
-      
+
       const results = await photoService.uploadMultiplePhotos(
         uris,
         itineraryId,
@@ -213,7 +215,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
     } catch (error: any) {
       setUploading(false);
       setUploadProgress({ current: 0, total: 0 });
-      
+
       // Verificar se é erro de limite de plano
       if (error?.response?.status === 403 && error?.response?.data?.error === 'limit_reached') {
         console.log('ℹ️ Limite de fotos atingido:', error.response.data);
@@ -223,7 +225,7 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
             error.response.data.message || 'Você atingiu o limite de fotos do seu plano.',
             [
               { text: 'Ver Planos', onPress: () => onUpgradePress?.() },
-              { text: 'OK', style: 'cancel' }
+              { text: 'OK', style: 'cancel' },
             ]
           );
         });
@@ -297,7 +299,12 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
       </View>
 
       {uploading && uploadProgress.total > 0 && (
-        <View style={[styles.uploadWarning, { backgroundColor: `${colors.primary}15`, borderColor: colors.primary }]}>
+        <View
+          style={[
+            styles.uploadWarning,
+            { backgroundColor: `${colors.primary}15`, borderColor: colors.primary },
+          ]}
+        >
           <Text style={[styles.uploadWarningText, { color: colors.primary }]}>
             ⚠️ Enviando fotos... Mantenha o app aberto
           </Text>
@@ -307,7 +314,10 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
         {photos.map((photo, index) => (
           <View key={index} style={styles.photoContainer}>
-            <Image source={{ uri: photo }} style={[styles.photo, { backgroundColor: colors.border }]} />
+            <Image
+              source={{ uri: photo }}
+              style={[styles.photo, { backgroundColor: colors.border }]}
+            />
             <TouchableOpacity
               style={[styles.removeButton, { backgroundColor: colors.error || '#DC2626' }]}
               onPress={() => handleConfirmRemovePhoto(index)}
@@ -345,14 +355,19 @@ export const PhotoPicker: React.FC<PhotoPickerProps> = ({
             )}
           </TouchableOpacity>
         )}
-        
+
         {photoLimit === 0 && (
           <TouchableOpacity
-            style={[styles.upgradeButton, { borderColor: colors.primary, backgroundColor: `${colors.primary}15` }]}
+            style={[
+              styles.upgradeButton,
+              { borderColor: colors.primary, backgroundColor: `${colors.primary}15` },
+            ]}
             onPress={onUpgradePress}
           >
             <Text style={[styles.upgradeIcon, { color: colors.primary }]}>⭐</Text>
-            <Text style={[styles.upgradeText, { color: colors.primary }]}>Upgrade{'\n'}Premium</Text>
+            <Text style={[styles.upgradeText, { color: colors.primary }]}>
+              Upgrade{'\n'}Premium
+            </Text>
           </TouchableOpacity>
         )}
       </ScrollView>

@@ -1,5 +1,5 @@
 // mobile/src/screens/ExploreScreen.tsx
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,387 +17,16 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useColors } from '../hooks/useColors';
 import { Toast } from '../components/Toast';
-import exploreService, { PublicItinerary, ExploreFilters } from '../services/exploreService';
+import exploreService, { PublicItinerary } from '../services/exploreService';
 import { useToast } from '../hooks/useToast';
 import analyticsService from '../services/analyticsService';
 import { Tooltip } from '../components/Tooltip';
 import { useTooltip } from '../hooks/useTooltip';
-
-// ========== DADOS MOCKADOS TEMPORÁRIOS ==========
-const MOCK_ITINERARIES: PublicItinerary[] = [
-  {
-    _id: 'mock-1',
-    title: 'Explorando Paris em 5 Dias',
-    description:
-      'Um roteiro completo pela Cidade Luz, incluindo Torre Eiffel, Louvre, Versalhes e os melhores cafés parisienses.',
-    destination: {
-      city: 'Paris',
-      country: 'França',
-      coverImage:
-        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-06-15',
-    endDate: '2026-06-20',
-    duration: 5,
-    owner: {
-      _id: 'user-1',
-      name: 'Ana Silva',
-      email: 'ana.silva@email.com',
-      isPremium: false,
-      createdAt: '2025-01-01T00:00:00Z',
-    },
-    budget: {
-      level: 'medio',
-      estimatedTotal: 5000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['cultura', 'gastronomia'],
-      travelStyle: 'casal',
-      pace: 'moderado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'confirmado',
-    generatedByAI: false,
-    isPublic: true,
-    isFeatured: true,
-    tags: ['Europa', 'Romance', 'Cultura'],
-    likesCount: 127,
-    savesCount: 89,
-    views: 1543,
-    rating: { score: 4.8 },
-    likes: [],
-    createdAt: '2026-01-15T10:00:00Z',
-    updatedAt: '2026-02-08T14:30:00Z',
-  },
-  {
-    _id: 'mock-2',
-    title: 'Aventura na Patagônia',
-    description:
-      'Trekking pelas geleiras e lagos cristalinos do fim do mundo. Inclui Torres del Paine e El Calafate.',
-    destination: {
-      city: 'El Calafate',
-      country: 'Argentina',
-      coverImage:
-        'https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-07-10',
-    endDate: '2026-07-17',
-    duration: 7,
-    owner: {
-      _id: 'user-2',
-      name: 'Carlos Mendes',
-      email: 'carlos.mendes@email.com',
-      isPremium: true,
-      createdAt: '2025-02-01T00:00:00Z',
-    },
-    budget: {
-      level: 'medio',
-      estimatedTotal: 8000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['aventura', 'natureza'],
-      travelStyle: 'amigos',
-      pace: 'intenso',
-    },
-    days: [],
-    collaborators: [],
-    status: 'planejando',
-    generatedByAI: true,
-    isPublic: true,
-    isFeatured: true,
-    tags: ['Aventura', 'Natureza', 'Trekking'],
-    likesCount: 203,
-    savesCount: 156,
-    views: 2891,
-    rating: { score: 4.9 },
-    likes: [],
-    createdAt: '2026-01-20T08:15:00Z',
-    updatedAt: '2026-02-09T11:20:00Z',
-  },
-  {
-    _id: 'mock-3',
-    title: 'Roteiro Gastronômico em Tóquio',
-    description:
-      'Descubra os melhores restaurantes, mercados e experiências culinárias da capital japonesa.',
-    destination: {
-      city: 'Tóquio',
-      country: 'Japão',
-      coverImage:
-        'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-05-01',
-    endDate: '2026-05-06',
-    duration: 5,
-    owner: {
-      _id: 'user-3',
-      name: 'Marina Kobayashi',
-      email: 'marina.k@email.com',
-      isPremium: false,
-      createdAt: '2025-03-01T00:00:00Z',
-    },
-    budget: {
-      level: 'medio',
-      estimatedTotal: 6000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['gastronomia', 'cultura'],
-      travelStyle: 'solo',
-      pace: 'moderado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'confirmado',
-    generatedByAI: false,
-    isPublic: true,
-    isFeatured: false,
-    tags: ['Gastronomia', 'Cultura', 'Ásia'],
-    likesCount: 98,
-    savesCount: 67,
-    views: 1234,
-    rating: { score: 4.7 },
-    likes: ['user'],
-    createdAt: '2026-02-01T12:00:00Z',
-    updatedAt: '2026-02-09T16:45:00Z',
-  },
-  {
-    _id: 'mock-4',
-    title: 'Praias Paradisíacas do Caribe',
-    description:
-      'Roteiro relaxante por Cancún, Playa del Carmen e Tulum com as melhores praias e cenotes.',
-    destination: {
-      city: 'Tulum',
-      country: 'México',
-      coverImage:
-        'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-08-20',
-    endDate: '2026-08-27',
-    duration: 7,
-    owner: {
-      _id: 'user-4',
-      name: 'Pedro Santos',
-      email: 'pedro.santos@email.com',
-      isPremium: true,
-      createdAt: '2024-12-01T00:00:00Z',
-    },
-    budget: {
-      level: 'luxo',
-      estimatedTotal: 12000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['praia', 'mergulho'],
-      travelStyle: 'casal',
-      pace: 'relaxado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'confirmado',
-    generatedByAI: false,
-    isPublic: true,
-    isFeatured: true,
-    tags: ['Praia', 'Relaxamento', 'Mergulho'],
-    likesCount: 312,
-    savesCount: 234,
-    views: 4567,
-    rating: { score: 4.9 },
-    likes: [],
-    createdAt: '2026-01-10T09:30:00Z',
-    updatedAt: '2026-02-10T08:15:00Z',
-  },
-  {
-    _id: 'mock-5',
-    title: 'Machu Picchu e Vale Sagrado',
-    description:
-      'Aventura histórica pelo Peru, incluindo Cusco, Vale Sagrado, Águas Calientes e a cidadela inca.',
-    destination: {
-      city: 'Cusco',
-      country: 'Peru',
-      coverImage:
-        'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-09-05',
-    endDate: '2026-09-11',
-    duration: 6,
-    owner: {
-      _id: 'user-5',
-      name: 'Juliana Costa',
-      email: 'juliana.costa@email.com',
-      isPremium: false,
-      createdAt: '2025-01-15T00:00:00Z',
-    },
-    budget: {
-      level: 'medio',
-      estimatedTotal: 7000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['história', 'cultura'],
-      travelStyle: 'familia',
-      pace: 'moderado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'planejando',
-    generatedByAI: true,
-    isPublic: true,
-    isFeatured: false,
-    tags: ['História', 'Cultura', 'Aventura'],
-    likesCount: 187,
-    savesCount: 142,
-    views: 2345,
-    rating: { score: 4.8 },
-    likes: ['user'],
-    createdAt: '2026-01-25T14:20:00Z',
-    updatedAt: '2026-02-07T10:30:00Z',
-  },
-  {
-    _id: 'mock-6',
-    title: 'Safári na África do Sul',
-    description:
-      'Experiência única observando os Big Five no Kruger Park, com hospedagem em lodges de luxo.',
-    destination: {
-      city: 'Kruger Park',
-      country: 'África do Sul',
-      coverImage:
-        'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-10-15',
-    endDate: '2026-10-22',
-    duration: 7,
-    owner: {
-      _id: 'user-6',
-      name: 'Roberto Lima',
-      email: 'roberto.lima@email.com',
-      isPremium: true,
-      createdAt: '2024-11-01T00:00:00Z',
-    },
-    budget: {
-      level: 'luxo',
-      estimatedTotal: 15000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['fotografia', 'natureza'],
-      travelStyle: 'solo',
-      pace: 'moderado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'confirmado',
-    generatedByAI: false,
-    isPublic: true,
-    isFeatured: true,
-    tags: ['Safari', 'Natureza', 'Fotografia'],
-    likesCount: 256,
-    savesCount: 198,
-    views: 3456,
-    rating: { score: 5.0 },
-    likes: [],
-    createdAt: '2026-01-18T11:45:00Z',
-    updatedAt: '2026-02-09T15:00:00Z',
-  },
-  {
-    _id: 'mock-7',
-    title: 'Nordeste Brasileiro Completo',
-    description:
-      'De Salvador a Jericoacoara, passando por Maceió, Maragogi, Porto de Galinhas e Natal.',
-    destination: {
-      city: 'Salvador',
-      country: 'Brasil',
-      coverImage:
-        'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-12-20',
-    endDate: '2027-01-03',
-    duration: 14,
-    owner: {
-      _id: 'user-7',
-      name: 'Fernanda Oliveira',
-      email: 'fernanda.oliveira@email.com',
-      isPremium: false,
-      createdAt: '2025-02-01T00:00:00Z',
-    },
-    budget: {
-      level: 'economico',
-      estimatedTotal: 4000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['praia', 'cultura'],
-      travelStyle: 'familia',
-      pace: 'relaxado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'planejando',
-    generatedByAI: false,
-    isPublic: true,
-    isFeatured: false,
-    tags: ['Praia', 'Brasil', 'Cultura'],
-    likesCount: 143,
-    savesCount: 101,
-    views: 1876,
-    rating: { score: 4.6 },
-    likes: [],
-    createdAt: '2026-02-03T13:30:00Z',
-    updatedAt: '2026-02-10T09:00:00Z',
-  },
-  {
-    _id: 'mock-8',
-    title: 'Islândia: Terra de Fogo e Gelo',
-    description:
-      'Círculo Dourado, Aurora Boreal, Blue Lagoon e cachoeiras impressionantes em 8 dias.',
-    destination: {
-      city: 'Reykjavik',
-      country: 'Islândia',
-      coverImage:
-        'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=400&h=200&fit=crop',
-    },
-    startDate: '2026-11-10',
-    endDate: '2026-11-18',
-    duration: 8,
-    owner: {
-      _id: 'user-8',
-      name: 'Lucas Ferreira',
-      email: 'lucas.ferreira@email.com',
-      isPremium: true,
-      createdAt: '2025-01-20T00:00:00Z',
-    },
-    budget: {
-      level: 'luxo',
-      estimatedTotal: 18000,
-      currency: 'BRL',
-    },
-    preferences: {
-      interests: ['fotografia', 'aurora'],
-      travelStyle: 'casal',
-      pace: 'moderado',
-    },
-    days: [],
-    collaborators: [],
-    status: 'confirmado',
-    generatedByAI: false,
-    isPublic: true,
-    isFeatured: true,
-    tags: ['Natureza', 'Fotografia', 'Aurora'],
-    likesCount: 289,
-    savesCount: 213,
-    views: 3987,
-    rating: { score: 4.9 },
-    likes: ['user'],
-    createdAt: '2026-01-28T16:00:00Z',
-    updatedAt: '2026-02-09T12:45:00Z',
-  },
-];
-// ================================================
+import { useAuth } from '../contexts/AuthContext';
 
 export const ExploreScreen = ({ navigation }: any) => {
   const colors = useColors();
+  const { user } = useAuth();
   const { toast, hideToast, error: showError } = useToast();
   const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
   const [activeTab, setActiveTab] = useState<'discover' | 'featured' | 'saved'>('discover');
@@ -410,8 +39,6 @@ export const ExploreScreen = ({ navigation }: any) => {
   const [itineraries, setItineraries] = useState<PublicItinerary[]>([]);
   const [pagination, setPagination] = useState<any>({ page: 1, hasNext: false });
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<ExploreFilters>({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Em Destaque
   const [featuredItineraries, setFeaturedItineraries] = useState<PublicItinerary[]>([]);
@@ -424,48 +51,18 @@ export const ExploreScreen = ({ navigation }: any) => {
   const loadDiscoverItineraries = useCallback(
     async (page: number) => {
       try {
-        // ========== USANDO DADOS MOCKADOS ==========
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simula delay da API
-
-        let filteredData = [...MOCK_ITINERARIES];
-
-        // Aplicar busca se houver
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filteredData = filteredData.filter(
-            (item) =>
-              item.title.toLowerCase().includes(query) ||
-              item.description?.toLowerCase().includes(query) ||
-              `${item.destination?.city ?? ''} ${item.destination?.country ?? ''}`
-                .toLowerCase()
-                .includes(query) ||
-              item.tags?.some((tag) => tag.toLowerCase().includes(query))
-          );
-        }
+        const data = await exploreService.getPublicItineraries({
+          search: searchQuery || undefined,
+          page,
+          limit: 20,
+        });
 
         if (page === 1) {
-          setItineraries(filteredData);
+          setItineraries(data.itineraries);
         } else {
-          setItineraries((prev) => [...prev, ...filteredData]);
+          setItineraries((prev) => [...prev, ...data.itineraries]);
         }
-        setPagination({ page, hasNext: false, total: filteredData.length });
-        // ===========================================
-
-        /* CÓDIGO REAL - DESCOMENTAR QUANDO TIVER DADOS NO BACKEND
-      const data = await exploreService.getPublicItineraries({
-        ...filters,
-        search: searchQuery || undefined,
-        page,
-        limit: 20,
-      });
-
-      if (page === 1) {
-        setItineraries(data.itineraries);
-      } else {
-        setItineraries(prev => [...prev, ...data.itineraries]);
-      }
-      setPagination(data.pagination);
-      */
+        setPagination(data.pagination);
       } catch (error: any) {
         if (error?.response?.status !== 401) {
           showError('Erro ao carregar roteiros');
@@ -475,27 +72,13 @@ export const ExploreScreen = ({ navigation }: any) => {
         setLoadingMore(false);
       }
     },
-    [filters, searchQuery, showError]
+    [searchQuery, showError]
   );
 
   const loadFeaturedItineraries = useCallback(async () => {
     try {
-      // ========== USANDO DADOS MOCKADOS ==========
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Simula delay da API
-      const featuredData = MOCK_ITINERARIES.filter((item) => item.isFeatured)
-        // Ordena por popularidade: views + likes (com peso maior para likes)
-        .sort((a, b) => {
-          const scoreA = (a.views || 0) + (a.likesCount || 0) * 2;
-          const scoreB = (b.views || 0) + (b.likesCount || 0) * 2;
-          return scoreB - scoreA; // Ordem decrescente (maior primeiro)
-        });
-      setFeaturedItineraries(featuredData);
-      // ===========================================
-
-      /* CÓDIGO REAL - DESCOMENTAR QUANDO TIVER DADOS NO BACKEND
       const data = await exploreService.getFeatured(20);
       setFeaturedItineraries(data);
-      */
     } catch (error: any) {
       if (error?.response?.status !== 401) {
         showError('Erro ao carregar destaques');
@@ -506,28 +89,15 @@ export const ExploreScreen = ({ navigation }: any) => {
   const loadSavedItineraries = useCallback(
     async (page: number) => {
       try {
-        // ========== USANDO DADOS MOCKADOS ==========
-        // Apenas inicializar na primeira vez, depois manter o estado em memória
-        if (!savedInitialized) {
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Simula delay da API
-          // Inicializar vazio - usuário vai salvando conforme interage
-          setSavedItineraries([]);
-          setSavedPagination({ page: 1, hasNext: false, total: 0 });
+        const data = await exploreService.getSaved(page, 20);
+
+        if (page === 1) {
+          setSavedItineraries(data.itineraries);
           setSavedInitialized(true);
+        } else {
+          setSavedItineraries((prev) => [...prev, ...data.itineraries]);
         }
-        // Depois da primeira carga, não recarregar - manter estado
-        // ===========================================
-
-        /* CÓDIGO REAL - DESCOMENTAR QUANDO TIVER DADOS NO BACKEND
-      const data = await exploreService.getSaved(page, 20);
-
-      if (page === 1) {
-        setSavedItineraries(data.itineraries);
-      } else {
-        setSavedItineraries(prev => [...prev, ...data.itineraries]);
-      }
-      setSavedPagination(data.pagination);
-      */
+        setSavedPagination(data.pagination);
       } catch (error: any) {
         if (error?.response?.status !== 401) {
           showError('Erro ao carregar salvos');
@@ -536,7 +106,7 @@ export const ExploreScreen = ({ navigation }: any) => {
         setLoadingMore(false);
       }
     },
-    [savedInitialized, showError]
+    [showError]
   );
 
   const loadData = useCallback(async () => {
@@ -637,20 +207,30 @@ export const ExploreScreen = ({ navigation }: any) => {
   const handleToggleLike = useCallback(
     async (id: string) => {
       try {
-        // ========== USANDO APENAS ESTADO LOCAL (MOCK) ==========
-        // await exploreService.toggleLike(id);
+        const result = await exploreService.toggleLike(id);
 
-        // Atualizar localmente
+        const userId = user?._id;
         const updateItineraries = (items: PublicItinerary[]) =>
           items.map((item) => {
             if (item._id === id) {
-              const isLiked = item.likes?.includes('user');
+              const likes = Array.isArray(item.likes) ? item.likes : [];
+              const hasLiked = userId
+                ? likes.some((likeId) => String(likeId) === String(userId))
+                : false;
+
+              let nextLikes = likes;
+              if (userId) {
+                nextLikes = result.liked
+                  ? hasLiked
+                    ? likes
+                    : [...likes, userId]
+                  : likes.filter((likeId) => String(likeId) !== String(userId));
+              }
+
               return {
                 ...item,
-                likes: isLiked
-                  ? item.likes.filter((l) => l !== 'user')
-                  : [...(item.likes || []), 'user'],
-                likesCount: isLiked ? (item.likesCount || 0) - 1 : (item.likesCount || 0) + 1,
+                likes: nextLikes,
+                likesCount: result.likesCount,
               };
             }
             return item;
@@ -659,23 +239,18 @@ export const ExploreScreen = ({ navigation }: any) => {
         setItineraries(updateItineraries);
         setFeaturedItineraries(updateItineraries);
         setSavedItineraries(updateItineraries);
-        // =======================================================
-
-        /* CÓDIGO REAL - DESCOMENTAR QUANDO TIVER BACKEND
-      await exploreService.toggleLike(id);
-      */
       } catch (error) {
         showError('Erro ao curtir roteiro');
       }
     },
-    [showError]
+    [showError, user?._id]
   );
 
   const handleToggleSave = useCallback(
     async (id: string) => {
       try {
-        // ========== USANDO APENAS ESTADO LOCAL (MOCK) ==========
-        // Atualiza contador de saves
+        const result = await exploreService.toggleSave(id);
+
         const updateSaved = (items: PublicItinerary[], isSaving: boolean) =>
           items.map((item) => {
             if (item._id === id) {
@@ -689,42 +264,35 @@ export const ExploreScreen = ({ navigation }: any) => {
             return item;
           });
 
-        // Verifica se já está salvo
-        const isSaved = savedItineraries.some((i) => i._id === id);
+        const wasSaved = savedItineraries.some((i) => i._id === id);
 
-        if (!isSaved) {
-          // Adiciona aos salvos
+        setItineraries((prev) => updateSaved(prev, result.saved));
+        setFeaturedItineraries((prev) => updateSaved(prev, result.saved));
+
+        if (!result.saved) {
+          setSavedItineraries((prev) => prev.filter((i) => i._id !== id));
+        } else if (!wasSaved) {
           const itemToSave = [...itineraries, ...featuredItineraries, ...savedItineraries].find(
             (i) => i._id === id
           );
+
           if (itemToSave) {
-            const updatedItem = { ...itemToSave, savesCount: (itemToSave.savesCount || 0) + 1 };
-            setSavedItineraries((prev) => [...prev, updatedItem]);
-            // Atualiza contador nas outras abas
-            setItineraries((prev) => updateSaved(prev, true));
-            setFeaturedItineraries((prev) => updateSaved(prev, true));
+            const updatedItem = {
+              ...itemToSave,
+              savesCount: (itemToSave.savesCount || 0) + 1,
+            };
+            setSavedItineraries((prev) => [updatedItem, ...prev]);
+          } else {
+            await loadSavedItineraries(1);
           }
-        } else {
-          // Remove dos salvos
-          setSavedItineraries((prev) => prev.filter((i) => i._id !== id));
-          // Atualiza contador nas outras abas
-          setItineraries((prev) => updateSaved(prev, false));
-          setFeaturedItineraries((prev) => updateSaved(prev, false));
+        } else if (activeTab === 'saved') {
+          await loadSavedItineraries(1);
         }
-        // =======================================================
-
-        /* CÓDIGO REAL - DESCOMENTAR QUANDO TIVER BACKEND
-      const result = await exploreService.toggleSave(id);
-
-      if (!result.saved && activeTab === 'saved') {
-        setSavedItineraries(prev => prev.filter(i => i._id !== id));
-      }
-      */
       } catch (error) {
         showError('Erro ao salvar roteiro');
       }
     },
-    [savedItineraries, itineraries, featuredItineraries, showError]
+    [savedItineraries, itineraries, featuredItineraries, showError, loadSavedItineraries, activeTab]
   );
 
   const currentData = useMemo(() => {
@@ -739,7 +307,9 @@ export const ExploreScreen = ({ navigation }: any) => {
       const endDate = format(new Date(item.endDate), 'dd MMM yyyy', { locale: ptBR });
 
       // Verificar se já está curtido/salvo
-      const isLiked = item.likes?.includes('user') || false;
+      const isLiked = user?._id
+        ? (item.likes || []).some((likeId) => String(likeId) === String(user._id))
+        : false;
       const isSaved = savedItineraries.some((i) => i._id === item._id);
 
       return (
@@ -813,7 +383,7 @@ export const ExploreScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       );
     },
-    [savedItineraries, navigation, colors, handleToggleLike, handleToggleSave]
+    [savedItineraries, navigation, colors, handleToggleLike, handleToggleSave, user?._id]
   );
 
   if (loading) {

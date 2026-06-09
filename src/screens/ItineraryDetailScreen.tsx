@@ -628,7 +628,181 @@ const getMockItinerary = (id: string): Itinerary | null => {
     },
   };
 
-  return mockItineraries[id] || null;
+  if (mockItineraries[id]) {
+    return mockItineraries[id];
+  }
+
+  // Fallback para mocks exibidos na tela Explorar que não possuem payload detalhado fixo
+  const fallbackCatalog: Record<
+    string,
+    {
+      title: string;
+      city: string;
+      country: string;
+      coverImage: string;
+      startDate: string;
+      endDate: string;
+      duration: number;
+      budgetLevel: 'economico' | 'medio' | 'luxo';
+      estimatedTotal: number;
+      interests: string[];
+      travelStyle: 'solo' | 'casal' | 'familia' | 'amigos' | 'mochileiro';
+      pace: 'relaxado' | 'moderado' | 'intenso';
+      ownerName: string;
+      ownerEmail: string;
+      ownerPremium: boolean;
+      views: number;
+    }
+  > = {
+    'mock-5': {
+      title: 'Machu Picchu e Vale Sagrado',
+      city: 'Cusco',
+      country: 'Peru',
+      coverImage:
+        'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=400&h=200&fit=crop',
+      startDate: '2026-09-05',
+      endDate: '2026-09-11',
+      duration: 6,
+      budgetLevel: 'medio',
+      estimatedTotal: 7000,
+      interests: ['história', 'cultura'],
+      travelStyle: 'familia',
+      pace: 'moderado',
+      ownerName: 'Juliana Costa',
+      ownerEmail: 'juliana.costa@email.com',
+      ownerPremium: false,
+      views: 2345,
+    },
+    'mock-6': {
+      title: 'Safári na África do Sul',
+      city: 'Kruger Park',
+      country: 'África do Sul',
+      coverImage:
+        'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=400&h=200&fit=crop',
+      startDate: '2026-10-15',
+      endDate: '2026-10-22',
+      duration: 7,
+      budgetLevel: 'luxo',
+      estimatedTotal: 15000,
+      interests: ['fotografia', 'natureza'],
+      travelStyle: 'solo',
+      pace: 'moderado',
+      ownerName: 'Roberto Lima',
+      ownerEmail: 'roberto.lima@email.com',
+      ownerPremium: true,
+      views: 3456,
+    },
+    'mock-7': {
+      title: 'Nordeste Brasileiro Completo',
+      city: 'Salvador',
+      country: 'Brasil',
+      coverImage:
+        'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=400&h=200&fit=crop',
+      startDate: '2026-12-20',
+      endDate: '2027-01-03',
+      duration: 14,
+      budgetLevel: 'economico',
+      estimatedTotal: 4000,
+      interests: ['praia', 'cultura'],
+      travelStyle: 'familia',
+      pace: 'relaxado',
+      ownerName: 'Fernanda Oliveira',
+      ownerEmail: 'fernanda.oliveira@email.com',
+      ownerPremium: false,
+      views: 1876,
+    },
+    'mock-8': {
+      title: 'Islândia: Terra de Fogo e Gelo',
+      city: 'Reykjavik',
+      country: 'Islândia',
+      coverImage:
+        'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=400&h=200&fit=crop',
+      startDate: '2026-11-10',
+      endDate: '2026-11-18',
+      duration: 8,
+      budgetLevel: 'luxo',
+      estimatedTotal: 18000,
+      interests: ['fotografia', 'aurora'],
+      travelStyle: 'casal',
+      pace: 'moderado',
+      ownerName: 'Lucas Ferreira',
+      ownerEmail: 'lucas.ferreira@email.com',
+      ownerPremium: true,
+      views: 3987,
+    },
+  };
+
+  const fallback = fallbackCatalog[id];
+  if (!fallback) {
+    return null;
+  }
+
+  return {
+    _id: id,
+    title: fallback.title,
+    destination: {
+      city: fallback.city,
+      country: fallback.country,
+      coverImage: fallback.coverImage,
+    },
+    startDate: fallback.startDate,
+    endDate: fallback.endDate,
+    duration: fallback.duration,
+    owner: {
+      _id: `user-${id.replace('mock-', '')}`,
+      name: fallback.ownerName,
+      email: fallback.ownerEmail,
+      isPremium: fallback.ownerPremium,
+      createdAt: '2025-01-01T00:00:00Z',
+    },
+    budget: {
+      level: fallback.budgetLevel,
+      estimatedTotal: fallback.estimatedTotal,
+      currency: 'BRL',
+      spent: 0,
+    },
+    preferences: {
+      interests: fallback.interests,
+      travelStyle: fallback.travelStyle,
+      pace: fallback.pace,
+    },
+    days: [
+      {
+        _id: `${id}-day-1`,
+        date: fallback.startDate,
+        dayNumber: 1,
+        title: 'Dia de chegada e reconhecimento',
+        activities: [
+          {
+            _id: `${id}-act-1`,
+            time: '09:00',
+            title: `Chegada em ${fallback.city}`,
+            description:
+              'Sugestão inicial de atividade. Ao usar este roteiro, personalize livremente.',
+            location: {
+              name: fallback.city,
+              address: `${fallback.city}, ${fallback.country}`,
+            },
+            category: 'atracao',
+            duration: 120,
+            estimatedCost: 0,
+            completed: false,
+          },
+        ],
+        dailyBudget: Math.round(fallback.estimatedTotal / Math.max(fallback.duration, 1)),
+        notes: 'Roteiro de inspiração: ajuste atividades e custos conforme sua viagem.',
+      },
+    ],
+    collaborators: [],
+    status: 'confirmado',
+    generatedByAI: false,
+    isPublic: true,
+    likes: [],
+    views: fallback.views,
+    expenses: [],
+    createdAt: '2026-02-01T00:00:00Z',
+    updatedAt: '2026-02-10T00:00:00Z',
+  };
 };
 // ================================================
 
@@ -1017,13 +1191,42 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleUseItinerary = async () => {
-    // Prevenir usar roteiros mockados
+    // Para mocks: cria uma cópia real no usuário com base no roteiro de sugestão
     if (isMockPreview) {
-      showAlert(
-        'Roteiro de Demonstração',
-        'Roteiros de demonstração não podem ser copiados. Explore os roteiros públicos para encontrar inspiração!'
-      );
-      return;
+      try {
+        const mockData = getMockItinerary(id);
+
+        if (!mockData) {
+          showError('Roteiro de demonstração não encontrado.');
+          return;
+        }
+
+        const created = await itineraryService.create({
+          title: `${mockData.title} (minha versão)`,
+          destination: mockData.destination,
+          startDate: mockData.startDate,
+          endDate: mockData.endDate,
+          budget: {
+            level: mockData.budget.level,
+            estimatedTotal: mockData.budget.estimatedTotal,
+            currency: mockData.budget.currency || 'BRL',
+          },
+          preferences: mockData.preferences,
+          days: mockData.days,
+          status: 'rascunho',
+          generatedByAI: mockData.generatedByAI || false,
+          isPublic: false,
+        });
+
+        success('Roteiro adicionado aos seus roteiros!');
+        navigation.replace('ItineraryDetail', { id: created._id });
+        return;
+      } catch (error: any) {
+        showError(
+          error.response?.data?.message || 'Não foi possível usar o roteiro de demonstração.'
+        );
+        return;
+      }
     }
 
     try {
@@ -1226,7 +1429,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
-        {/* Fotos - só aparece para planos Premium e Pro */}
+        {/* Fotos - só aparece para plano Premium */}
         {isOwner && subscriptionData?.subscription?.plan !== 'free' && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Fotos da Viagem</Text>

@@ -10,7 +10,7 @@ import {
   Share,
   Linking,
   Platform,
-  InteractionManager
+  InteractionManager,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { showAlert } from './CustomAlert';
@@ -57,7 +57,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   const handleGenerateLink = async () => {
     if (!isMounted.current) return;
-    
+
     // Verificar se o plano permite compartilhamento
     if (currentPlan === 'free') {
       // Close modal first to prevent modal/alert overlay deadlock
@@ -65,21 +65,21 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       InteractionManager.runAfterInteractions(() => {
         showAlert(
           'Recurso Premium',
-          'Compartilhamento de roteiros está disponível apenas para assinantes Premium e Pro.',
+          'Compartilhamento de roteiros está disponível apenas para assinantes Premium.',
           [
             { text: 'Cancelar', style: 'cancel' },
             {
               text: 'Ver Planos',
               onPress: () => {
                 onUpgradePress?.();
-              }
-            }
+              },
+            },
           ]
         );
       });
       return;
     }
-    
+
     setLoading(true);
     try {
       const response = await itineraryService.generateShareLink(itineraryId);
@@ -91,25 +91,21 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       if (isMounted.current) {
         const errorMsg = error.response?.data?.message || 'Erro ao gerar link';
         const errorType = error.response?.data?.error;
-        
+
         // Se for erro de feature bloqueada, mostrar opção de upgrade
         if (errorType === 'feature_locked') {
           // Close modal first to prevent modal/alert overlay deadlock
           onClose();
           InteractionManager.runAfterInteractions(() => {
-            showAlert(
-              'Recurso Premium',
-              errorMsg,
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Ver Planos',
-                  onPress: () => {
-                    onUpgradePress?.();
-                  }
-                }
-              ]
-            );
+            showAlert('Recurso Premium', errorMsg, [
+              { text: 'Cancelar', style: 'cancel' },
+              {
+                text: 'Ver Planos',
+                onPress: () => {
+                  onUpgradePress?.();
+                },
+              },
+            ]);
           });
         } else {
           // Close modal first to prevent modal/alert overlay deadlock
@@ -159,7 +155,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const handleShareWhatsApp = async () => {
     if (!isMounted.current) return;
     let linkToShare = shareLink;
-    
+
     // Se não tem link, gera um primeiro
     if (!linkToShare) {
       try {
@@ -187,7 +183,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
 
     const message = `Confira meu roteiro de viagem: ${itineraryTitle}\n\n${linkToShare}`;
-    
+
     // Tenta abrir WhatsApp diretamente
     try {
       const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
@@ -214,7 +210,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const handleRevokeLink = async () => {
     // Close modal first to prevent modal/alert overlay deadlock
     onClose();
-    
+
     // Defer the alert until modal is definitely closed
     InteractionManager.runAfterInteractions(() => {
       showAlert(
@@ -239,20 +235,15 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               } finally {
                 setLoading(false);
               }
-            }
-          }
+            },
+          },
         ]
       );
     });
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View
           style={{
@@ -261,89 +252,109 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             alignSelf: 'center',
             borderRadius: 16,
             padding: 20,
-            backgroundColor: colors.card
+            backgroundColor: colors.card,
           }}
         >
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text, flex: 1 }]}>Compartilhar Roteiro</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Text style={[styles.closeButtonText, { color: colors.text }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.itinerarySubtitle, { color: colors.primary }]}>{itineraryTitle}</Text>
-
-              {shareLink ? (
-                <>
-                  <View style={styles.linkContainer}>
-                    <Text style={[styles.linkLabel, { color: colors.textSecondary }]}>Link de compartilhamento:</Text>
-                    <View style={[styles.linkBox, { backgroundColor: colors.backgroundLight, borderColor: colors.border }]}>
-                      <Text style={[styles.linkText, { color: colors.primary }]} numberOfLines={1}>
-                        {shareLink}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity 
-                    style={[styles.primaryButton, { backgroundColor: colors.primary }]} 
-                    onPress={handleCopyLink}
-                  >
-                    <Text style={styles.primaryButtonText}>📋 Copiar Link</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.secondaryButton, { backgroundColor: colors.backgroundLight, borderColor: colors.border }]} 
-                    onPress={handleShareNative}
-                  >
-                    <Text style={[styles.secondaryButtonText, { color: colors.text }]}>📤 Compartilhar</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.whatsappButton, { backgroundColor: '#25D366' }]} 
-                    onPress={handleShareWhatsApp}
-                  >
-                    <Text style={styles.whatsappButtonText}>💬 Enviar no WhatsApp</Text>
-                  </TouchableOpacity>
-
-                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                  <TouchableOpacity
-                    style={[styles.dangerButton, { backgroundColor: colors.backgroundLight, borderColor: colors.error }]}
-                    onPress={handleRevokeLink}
-                    disabled={loading}
-                  >
-                    <Text style={[styles.dangerButtonText, { color: colors.error }]}>🔒 Tornar Privado</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text style={[styles.description, { color: colors.textSecondary }]}>
-                    Gere um link para compartilhar este roteiro com amigos e familiares. Qualquer
-                    pessoa com o link poderá visualizar.
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: colors.primary }, loading && styles.disabledButton]}
-                    onPress={handleGenerateLink}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.primaryButtonText}>🔗 Gerar Link</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: colors.text, flex: 1 }]}>
+              Compartilhar Roteiro
+            </Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={[styles.closeButtonText, { color: colors.text }]}>✕</Text>
+            </TouchableOpacity>
           </View>
+
+          <Text style={[styles.itinerarySubtitle, { color: colors.primary }]}>
+            {itineraryTitle}
+          </Text>
+
+          {shareLink ? (
+            <>
+              <View style={styles.linkContainer}>
+                <Text style={[styles.linkLabel, { color: colors.textSecondary }]}>
+                  Link de compartilhamento:
+                </Text>
+                <View
+                  style={[
+                    styles.linkBox,
+                    { backgroundColor: colors.backgroundLight, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.linkText, { color: colors.primary }]} numberOfLines={1}>
+                    {shareLink}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                onPress={handleCopyLink}
+              >
+                <Text style={styles.primaryButtonText}>📋 Copiar Link</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.secondaryButton,
+                  { backgroundColor: colors.backgroundLight, borderColor: colors.border },
+                ]}
+                onPress={handleShareNative}
+              >
+                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                  📤 Compartilhar
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.whatsappButton, { backgroundColor: '#25D366' }]}
+                onPress={handleShareWhatsApp}
+              >
+                <Text style={styles.whatsappButtonText}>💬 Enviar no WhatsApp</Text>
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+              <TouchableOpacity
+                style={[
+                  styles.dangerButton,
+                  { backgroundColor: colors.backgroundLight, borderColor: colors.error },
+                ]}
+                onPress={handleRevokeLink}
+                disabled={loading}
+              >
+                <Text style={[styles.dangerButtonText, { color: colors.error }]}>
+                  🔒 Tornar Privado
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.description, { color: colors.textSecondary }]}>
+                Gere um link para compartilhar este roteiro com amigos e familiares. Qualquer pessoa
+                com o link poderá visualizar.
+              </Text>
+
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: colors.primary },
+                  loading && styles.disabledButton,
+                ]}
+                onPress={handleGenerateLink}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>🔗 Gerar Link</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
-      
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={hideToast}
-      />
+
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </Modal>
   );
 };
