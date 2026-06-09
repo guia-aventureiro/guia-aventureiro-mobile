@@ -18,6 +18,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  testID?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -28,13 +29,17 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   style,
   textStyle,
+  testID,
 }) => {
   const colors = useColors();
-  
+
   const buttonStyle = [
     styles.button,
     { backgroundColor: colors.primary },
-    variant === 'outline' && [styles.buttonOutline, { borderColor: colors.primary, backgroundColor: 'transparent' }],
+    variant === 'outline' && [
+      styles.buttonOutline,
+      { borderColor: colors.primary, backgroundColor: 'transparent' },
+    ],
     variant === 'accent' && { backgroundColor: colors.accent || colors.primary },
     (disabled || loading) && styles.buttonDisabled,
     style,
@@ -54,6 +59,8 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.7}
+      testID={testID}
+      accessibilityLabel={testID}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.white} />

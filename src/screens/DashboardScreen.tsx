@@ -15,7 +15,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,7 +47,7 @@ export const DashboardScreen = ({ navigation }: any) => {
   const { canCreateItinerary, usage, plan } = useCanPerformAction();
   const { data: subscriptionData, refetch: refetchSubscription } = useMySubscription();
   const { refetch: refetchUsage } = useUsage();
-  
+
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [filteredItineraries, setFilteredItineraries] = useState<Itinerary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,19 +69,18 @@ export const DashboardScreen = ({ navigation }: any) => {
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'date'>('recent');
   const [showSortModal, setShowSortModal] = useState(false);
 
-
   // Carregar no mount e sempre que voltar ao foco
   const loadItineraries = useCallback(async () => {
     try {
       setHasError(false);
-      
+
       // Verificar se está online
       const isOnline = await offlineService.checkConnection();
-      
+
       if (isOnline) {
         // Online: buscar da API
         const response = await itineraryService.getAll();
-        
+
         // Normalizar resposta (pode ser array ou objeto paginado)
         let data: Itinerary[];
         if (Array.isArray(response)) {
@@ -91,10 +90,10 @@ export const DashboardScreen = ({ navigation }: any) => {
         } else {
           data = [];
         }
-        
+
         console.log('📥 Roteiros carregados:', data.length, 'itens');
         setItineraries(data);
-        
+
         // Salvar offline para acesso futuro
         await offlineService.saveItinerariesOffline(data);
       } else {
@@ -113,7 +112,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       } else {
         // Outros erros: logar e tentar carregar do cache
         console.error('Erro ao carregar roteiros:', err);
-        
+
         const cachedData = await offlineService.getOfflineItineraries();
         if (cachedData.length > 0) {
           setItineraries(cachedData);
@@ -160,8 +159,8 @@ export const DashboardScreen = ({ navigation }: any) => {
       filtered = filtered.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
-          (item.destination?.city?.toLowerCase().includes(query)) ||
-          (item.destination?.country?.toLowerCase().includes(query))
+          item.destination?.city?.toLowerCase().includes(query) ||
+          item.destination?.country?.toLowerCase().includes(query)
       );
     }
 
@@ -190,7 +189,7 @@ export const DashboardScreen = ({ navigation }: any) => {
   const handleCreateItinerary = () => {
     // Verificar limite antes de navegar
     const can = canCreateItinerary();
-    
+
     if (can === false) {
       setLimitError({
         error: 'limit_reached',
@@ -206,7 +205,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       setShowLimitModal(true);
       return;
     }
-    
+
     // Prosseguir com criação
     navigation.navigate('Generate');
   };
@@ -231,6 +230,7 @@ export const DashboardScreen = ({ navigation }: any) => {
         <TouchableOpacity
           style={[styles.createButton, { backgroundColor: colors.primary }]}
           onPress={handleCreateItinerary}
+          testID="dashboard-create-itinerary"
         >
           <Text style={[styles.createButtonText, { color: colors.white }]}>Criar roteiro</Text>
         </TouchableOpacity>
@@ -253,7 +253,8 @@ export const DashboardScreen = ({ navigation }: any) => {
     { value: 'date', label: 'Data da viagem', icon: '🗓️' },
   ];
 
-  const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Mais recentes';
+  const currentSortLabel =
+    sortOptions.find((opt) => opt.value === sortBy)?.label || 'Mais recentes';
 
   if (loading) {
     return (
@@ -295,192 +296,231 @@ export const DashboardScreen = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'left', 'right']}
+    >
       <OfflineIndicator />
-      
+
       <View style={{ flex: 1 }}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={{ flex: 1 }}>
-            <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+            <View
+              style={[
+                styles.header,
+                { backgroundColor: colors.card, borderBottomColor: colors.border },
+              ]}
+            >
               <Text style={[styles.greeting, { color: colors.text }]}>Olá, {user?.name}! 👋</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                {filteredItineraries.length} {filteredItineraries.length === 1 ? 'roteiro' : 'roteiros'}
+                {filteredItineraries.length}{' '}
+                {filteredItineraries.length === 1 ? 'roteiro' : 'roteiros'}
               </Text>
             </View>
 
-      {/* Busca */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={[styles.searchInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-          placeholder="Buscar por título, cidade ou país..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={colors.textSecondary}
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>✕</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      {/* Filtros e Ordenação - Header Fixo */}
-      <View style={[styles.filtersContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        {/* Filtro por Status */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersScroll}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {statusOptions.map((option) => (
-            <TouchableOpacity
-              key={String(option.value)}
-              style={[
-                styles.filterChip,
-                { backgroundColor: statusFilter === option.value ? colors.primary : colors.card, borderColor: statusFilter === option.value ? colors.primary : colors.border },
-              ]}
-              onPress={() => setStatusFilter(option.value)}
-            >
-              <Text style={styles.filterIcon}>{option.icon}</Text>
-              <Text
+            {/* Busca */}
+            <View style={styles.searchContainer}>
+              <TextInput
                 style={[
-                  styles.filterLabel,
-                  { color: statusFilter === option.value ? colors.white : colors.textSecondary },
+                  styles.searchInput,
+                  { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
                 ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Ordenação */}
-        <View style={styles.sortContainer}>
-          <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>Ordenar por:</Text>
-          <TouchableOpacity
-            style={[styles.sortButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => setShowSortModal(true)}
-          >
-            <Text style={[styles.sortButtonText, { color: colors.primary }]}>{currentSortLabel}</Text>
-            <Text style={[styles.sortArrow, { color: colors.textSecondary }]}>▼</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <FlatList
-        data={filteredItineraries}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <ItineraryCard
-            itinerary={item}
-            onPress={() => {
-              console.log('🔗 Navegando para roteiro:', item._id, 'Título:', item.title);
-              navigation.navigate('ItineraryDetail', {
-                id: item._id
-              });
-            }}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmpty}
-        indicatorStyle={theme === 'dark' ? 'white' : 'black'}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      />
-
-      {/* Modal de Ordenação */}
-      <Modal
-        visible={showSortModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowSortModal(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1, justifyContent: 'center' }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowSortModal(false)}
-          >
-            <View style={[styles.modalContent, { backgroundColor: colors.card }]}> 
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Ordenar por</Text>
-            {sortOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.modalOption,
-                  sortBy === option.value && { backgroundColor: colors.primary + '15' },
-                ]}
-                onPress={() => {
-                  setSortBy(option.value as any);
-                  setShowSortModal(false);
-                }}
-              >
-                <Text style={styles.modalOptionIcon}>{option.icon}</Text>
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    { color: sortBy === option.value ? colors.primary : colors.text },
-                    sortBy === option.value && { fontWeight: '600' },
-                  ]}
+                placeholder="Buscar por título, cidade ou país..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={colors.textSecondary}
+                testID="dashboard-search-input"
+              />
+              {searchQuery ? (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  style={styles.clearButton}
+                  testID="dashboard-clear-search"
                 >
-                  {option.label}
+                  <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>✕</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Filtros e Ordenação - Header Fixo */}
+            <View
+              style={[
+                styles.filtersContainer,
+                { backgroundColor: colors.background, borderBottomColor: colors.border },
+              ]}
+            >
+              {/* Filtro por Status */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filtersScroll}
+                contentContainerStyle={styles.filtersContent}
+              >
+                {statusOptions.map((option) => (
+                  <TouchableOpacity
+                    key={String(option.value)}
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor:
+                          statusFilter === option.value ? colors.primary : colors.card,
+                        borderColor: statusFilter === option.value ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setStatusFilter(option.value)}
+                  >
+                    <Text style={styles.filterIcon}>{option.icon}</Text>
+                    <Text
+                      style={[
+                        styles.filterLabel,
+                        {
+                          color:
+                            statusFilter === option.value ? colors.white : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Ordenação */}
+              <View style={styles.sortContainer}>
+                <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>
+                  Ordenar por:
                 </Text>
-                {sortBy === option.value && (
-                  <Text style={[styles.checkIcon, { color: colors.primary }]}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
+                <TouchableOpacity
+                  style={[
+                    styles.sortButton,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                  onPress={() => setShowSortModal(true)}
+                  testID="dashboard-sort-button"
+                >
+                  <Text style={[styles.sortButtonText, { color: colors.primary }]}>
+                    {currentSortLabel}
+                  </Text>
+                  <Text style={[styles.sortArrow, { color: colors.textSecondary }]}>▼</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        visible={toast.visible}
-        onHide={hideToast}
-      />
+            <FlatList
+              data={filteredItineraries}
+              keyExtractor={(item) => item._id}
+              testID="dashboard-itineraries-list"
+              renderItem={({ item }) => (
+                <ItineraryCard
+                  itinerary={item}
+                  onPress={() => {
+                    console.log('🔗 Navegando para roteiro:', item._id, 'Título:', item.title);
+                    navigation.navigate('ItineraryDetail', {
+                      id: item._id,
+                    });
+                  }}
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={renderEmpty}
+              indicatorStyle={theme === 'dark' ? 'white' : 'black'}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={colors.primary}
+                />
+              }
+            />
 
-      {/* Tooltip para criar primeiro roteiro */}
-      <Tooltip
-        visible={showCreateTooltip}
-        message="👋 Toque em 'Criar' para gerar seu primeiro roteiro com IA em segundos!"
-        position="center"
-        onClose={() => {
-          setShowCreateTooltip(false);
-          markTooltipAsShown('createItinerary');
-        }}
-        buttonText="Entendi!"
-      />
+            {/* Modal de Ordenação */}
+            <Modal
+              visible={showSortModal}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowSortModal(false)}
+            >
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1, justifyContent: 'center' }}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+              >
+                <TouchableOpacity
+                  style={styles.modalOverlay}
+                  activeOpacity={1}
+                  onPress={() => setShowSortModal(false)}
+                >
+                  <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Ordenar por</Text>
+                    {sortOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.modalOption,
+                          sortBy === option.value && { backgroundColor: colors.primary + '15' },
+                        ]}
+                        onPress={() => {
+                          setSortBy(option.value as any);
+                          setShowSortModal(false);
+                        }}
+                        testID={`dashboard-sort-${option.value}`}
+                      >
+                        <Text style={styles.modalOptionIcon}>{option.icon}</Text>
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            { color: sortBy === option.value ? colors.primary : colors.text },
+                            sortBy === option.value && { fontWeight: '600' },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                        {sortBy === option.value && (
+                          <Text style={[styles.checkIcon, { color: colors.primary }]}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </TouchableOpacity>
+              </KeyboardAvoidingView>
+            </Modal>
 
-      {/* Modal de Limite Atingido */}
-      {limitError && (
-        <LimitModal
-          visible={showLimitModal}
-          onClose={() => setShowLimitModal(false)}
-          limitError={limitError}
-          onUpgrade={() => {
-            setShowLimitModal(false);
-            navigation.navigate('Pricing');
-          }}
-          currentPlan={plan || 'free'}
-        />
-      )}
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              visible={toast.visible}
+              onHide={hideToast}
+            />
+
+            {/* Tooltip para criar primeiro roteiro */}
+            <Tooltip
+              visible={showCreateTooltip}
+              message="👋 Toque em 'Criar' para gerar seu primeiro roteiro com IA em segundos!"
+              position="center"
+              onClose={() => {
+                setShowCreateTooltip(false);
+                markTooltipAsShown('createItinerary');
+              }}
+              buttonText="Entendi!"
+            />
+
+            {/* Modal de Limite Atingido */}
+            {limitError && (
+              <LimitModal
+                visible={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
+                limitError={limitError}
+                onUpgrade={() => {
+                  setShowLimitModal(false);
+                  navigation.navigate('Pricing');
+                }}
+                currentPlan={plan || 'free'}
+              />
+            )}
           </View>
         </TouchableWithoutFeedback>
       </View>
-      
+
       <AdBanner onUpgradePress={() => navigation.navigate('Pricing')} />
     </SafeAreaView>
   );
@@ -570,8 +610,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     marginRight: 8,
   },
-  filterChipActive: {
-  },
+  filterChipActive: {},
   filterIcon: {
     fontSize: 16,
     marginRight: 6,
@@ -580,8 +619,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  filterLabelActive: {
-  },
+  filterLabelActive: {},
   sortContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,8 +705,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
   },
-  modalOptionActive: {
-  },
+  modalOptionActive: {},
   modalOptionIcon: {
     fontSize: 20,
     marginRight: 12,

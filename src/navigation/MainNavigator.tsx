@@ -135,7 +135,7 @@ export const MainNavigator = () => {
   const colors = useColors();
   const { unreadCount } = useNotifications();
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tab.Navigator
       id="MainTabs"
@@ -156,6 +156,7 @@ export const MainNavigator = () => {
           fontWeight: '600',
           marginBottom: 5,
         },
+        tabBarAccessibilityLabel: 'main-tabs',
       }}
     >
       <Tab.Screen
@@ -164,6 +165,8 @@ export const MainNavigator = () => {
         options={{
           tabBarLabel: 'Roteiros',
           tabBarIcon: ({ focused }) => <TabIcon icon="🗺️" focused={focused} />,
+          tabBarAccessibilityLabel: 'tab-dashboard',
+          tabBarButtonTestID: 'tab-dashboard',
         }}
       />
       <Tab.Screen
@@ -172,6 +175,8 @@ export const MainNavigator = () => {
         options={{
           tabBarLabel: 'Explorar',
           tabBarIcon: ({ focused }) => <TabIcon icon="🌍" focused={focused} />,
+          tabBarAccessibilityLabel: 'tab-explore',
+          tabBarButtonTestID: 'tab-explore',
         }}
       />
       <Tab.Screen
@@ -180,6 +185,8 @@ export const MainNavigator = () => {
         options={{
           tabBarLabel: 'Criar',
           tabBarIcon: ({ focused }) => <TabIcon icon="➕" focused={focused} />,
+          tabBarAccessibilityLabel: 'tab-generate',
+          tabBarButtonTestID: 'tab-generate',
         }}
       />
       <Tab.Screen
@@ -189,6 +196,8 @@ export const MainNavigator = () => {
           tabBarLabel: 'Alertas',
           tabBarIcon: ({ focused }) => <TabIcon icon="🔔" focused={focused} />,
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarAccessibilityLabel: 'tab-notifications',
+          tabBarButtonTestID: 'tab-notifications',
         }}
       />
       <Tab.Screen
@@ -197,6 +206,8 @@ export const MainNavigator = () => {
         options={{
           tabBarLabel: 'Perfil',
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+          tabBarAccessibilityLabel: 'tab-profile',
+          tabBarButtonTestID: 'tab-profile',
         }}
       />
     </Tab.Navigator>

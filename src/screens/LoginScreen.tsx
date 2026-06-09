@@ -64,10 +64,7 @@ export const LoginScreen = ({ navigation }: any) => {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.logo}>✈️</Text>
           <Text style={[styles.title, { color: colors.text }]}>Guia do Aventureiro</Text>
@@ -84,6 +81,7 @@ export const LoginScreen = ({ navigation }: any) => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            testID="login-email"
           />
 
           <Input
@@ -94,6 +92,7 @@ export const LoginScreen = ({ navigation }: any) => {
             error={errors.password}
             secureTextEntry
             autoCapitalize="none"
+            testID="login-password"
           />
 
           <Button
@@ -101,11 +100,13 @@ export const LoginScreen = ({ navigation }: any) => {
             onPress={handleLogin}
             loading={loading}
             style={styles.loginButton}
+            testID="login-submit"
           />
 
           <TouchableOpacity
             onPress={() => navigation.navigate('Signup')}
             style={styles.signupLink}
+            testID="login-go-signup"
           >
             <Text style={[styles.signupText, { color: colors.textSecondary }]}>
               Não tem uma conta?{' '}

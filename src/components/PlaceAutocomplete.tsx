@@ -21,6 +21,7 @@ interface PlaceAutocompleteProps {
   error?: string;
   containerStyle?: any;
   initialValue?: string;
+  testID?: string;
 }
 
 export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
@@ -30,6 +31,7 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
   error,
   containerStyle,
   initialValue = '',
+  testID,
 }) => {
   const colors = useColors();
   const [input, setInput] = useState(initialValue);
@@ -82,10 +84,10 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
   const handleSelectPlace = async (suggestion: PlaceSuggestion) => {
     // Marcar para ignorar a próxima busca
     ignoreNextSearch.current = true;
-    
+
     // Fechar teclado
     Keyboard.dismiss();
-    
+
     // Esconder sugestões e atualizar input imediatamente
     setShowSuggestions(false);
     setSuggestions([]);
@@ -105,13 +107,13 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? <Text style={[styles.label, { color: colors.text }]}>{label}</Text> : null}
-      
+
       <View style={styles.inputContainer}>
         <TextInput
           style={[
             styles.input,
             { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-            error ? { borderColor: colors.error || '#DC2626' } : null
+            error ? { borderColor: colors.error || '#DC2626' } : null,
           ]}
           placeholder={placeholder}
           placeholderTextColor={colors.textSecondary}
@@ -122,8 +124,10 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
           }}
           autoCapitalize="words"
           autoCorrect={false}
+          testID={testID}
+          accessibilityLabel={testID}
         />
-        
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={colors.primary} />
@@ -131,24 +135,33 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
         ) : null}
       </View>
 
-      {error ? <Text style={[styles.errorText, { color: colors.error || '#DC2626' }]}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.errorText, { color: colors.error || '#DC2626' }]}>{error}</Text>
+      ) : null}
 
       {showSuggestions && suggestions.length > 0 ? (
-        <View style={[styles.suggestionsContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <ScrollView 
+        <View
+          style={[
+            styles.suggestionsContainer,
+            { backgroundColor: colors.background, borderColor: colors.border },
+          ]}
+        >
+          <ScrollView
             style={styles.suggestionsList}
             nestedScrollEnabled={true}
             keyboardShouldPersistTaps="always"
           >
             {suggestions.map((item) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={item.placeId}
-                style={[styles.suggestionItem, { borderBottomColor: colors.border }]} 
+                style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
                 onPress={() => handleSelectPlace(item)}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.mainText, { color: colors.text }]}>{item.mainText}</Text>
-                <Text style={[styles.secondaryText, { color: colors.textSecondary }]}>{item.secondaryText}</Text>
+                <Text style={[styles.secondaryText, { color: colors.textSecondary }]}>
+                  {item.secondaryText}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -156,8 +169,15 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
       ) : null}
 
       {showSuggestions && suggestions.length === 0 && !loading && input.length >= 3 ? (
-        <View style={[styles.noResults, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>Nenhum resultado encontrado</Text>
+        <View
+          style={[
+            styles.noResults,
+            { backgroundColor: colors.background, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
+            Nenhum resultado encontrado
+          </Text>
         </View>
       ) : null}
     </View>

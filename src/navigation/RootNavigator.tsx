@@ -118,6 +118,7 @@ export const RootNavigator = () => {
     <SafeAreaProvider>
       <NavigationContainer
         ref={navigationRef}
+        testID="app-navigation"
         onReady={() => {
           routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
         }}

@@ -64,7 +64,10 @@ export default function UpgradeScreen() {
       }
 
       if (!setupIntent?.paymentMethodId) {
-        showAlert('Não foi possível processar', 'Não conseguimos confirmar o pagamento agora. Tente novamente.');
+        showAlert(
+          'Não foi possível processar',
+          'Não conseguimos confirmar o pagamento agora. Tente novamente.'
+        );
         setLoading(false);
         return;
       }
@@ -98,7 +101,10 @@ export default function UpgradeScreen() {
       if (error.response?.data?.error === 'already_premium') {
         showAlert('Tudo certo', 'Você já possui um plano Premium ativo.');
       } else {
-        showAlert('Não foi possível concluir', `Não conseguimos processar o pagamento agora. Detalhe: ${errorMessage}`);
+        showAlert(
+          'Não foi possível concluir',
+          `Não conseguimos processar o pagamento agora. Detalhe: ${errorMessage}`
+        );
       }
     }
   };
@@ -107,7 +113,7 @@ export default function UpgradeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.success }]}> 
+        <View style={[styles.header, { backgroundColor: colors.success }]}>
           <Text style={styles.title}>💎 Premium</Text>
           <View style={styles.priceBox}>
             <Text style={[styles.price, { color: colors.white }]}>R$ 19,90</Text>
@@ -116,14 +122,44 @@ export default function UpgradeScreen() {
         </View>
 
         {/* Benefícios */}
-        <View style={[styles.benefitsBox, { backgroundColor: colors.card }]}> 
+        <View style={[styles.benefitsBox, { backgroundColor: colors.card }]}>
           <Text style={[styles.benefitTitle, { color: colors.text }]}>O que você ganha:</Text>
-          <BenefitItem icon="✓" text="50 roteiros de viagem" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Gerações de IA ilimitadas" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Upload de até 20 fotos por roteiro" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Compartilhamento público de roteiros" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Planejador de orçamento avançado" iconColor={colors.success} textColor={colors.textSecondary} />
-          <BenefitItem icon="✓" text="Exportação de roteiros em PDF" iconColor={colors.success} textColor={colors.textSecondary} />
+          <BenefitItem
+            icon="✓"
+            text="50 roteiros de viagem"
+            iconColor={colors.success}
+            textColor={colors.textSecondary}
+          />
+          <BenefitItem
+            icon="✓"
+            text="Gerações de IA ilimitadas"
+            iconColor={colors.success}
+            textColor={colors.textSecondary}
+          />
+          <BenefitItem
+            icon="✓"
+            text="Upload de até 20 fotos por roteiro"
+            iconColor={colors.success}
+            textColor={colors.textSecondary}
+          />
+          <BenefitItem
+            icon="✓"
+            text="Compartilhamento público de roteiros"
+            iconColor={colors.success}
+            textColor={colors.textSecondary}
+          />
+          <BenefitItem
+            icon="✓"
+            text="Planejador de orçamento avançado"
+            iconColor={colors.success}
+            textColor={colors.textSecondary}
+          />
+          <BenefitItem
+            icon="✓"
+            text="Exportação de roteiros em PDF"
+            iconColor={colors.success}
+            textColor={colors.textSecondary}
+          />
         </View>
 
         {/* Campo de Cartão */}
@@ -153,7 +189,10 @@ export default function UpgradeScreen() {
           style={[
             styles.button,
             { backgroundColor: colors.success },
-            (loading || !cardComplete) && [styles.buttonDisabled, { backgroundColor: colors.textLight }],
+            (loading || !cardComplete) && [
+              styles.buttonDisabled,
+              { backgroundColor: colors.textLight },
+            ],
           ]}
           onPress={handleUpgrade}
           disabled={loading || !cardComplete}
@@ -161,7 +200,7 @@ export default function UpgradeScreen() {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color={colors.white} size="small" />
-              <Text style={[styles.buttonText, { color: colors.white }]}>  Processando...</Text>
+              <Text style={[styles.buttonText, { color: colors.white }]}> Processando...</Text>
             </View>
           ) : (
             <Text style={[styles.buttonText, { color: colors.white }]}>Assinar Premium</Text>
@@ -169,10 +208,9 @@ export default function UpgradeScreen() {
         </TouchableOpacity>
 
         {/* Informações */}
-        <Text style={[styles.disclaimer, { color: colors.textLight }]}> 
-          ✓ Cancele a qualquer momento{'\n'}
-          ✓ Sem taxas de cancelamento{'\n'}
-          ✓ Pagamento seguro via Stripe
+        <Text style={[styles.disclaimer, { color: colors.textLight }]}>
+          ✓ Cancele a qualquer momento{'\n'}✓ Sem taxas de cancelamento{'\n'}✓ Pagamento seguro via
+          Stripe
         </Text>
       </ScrollView>
     </SafeAreaView>

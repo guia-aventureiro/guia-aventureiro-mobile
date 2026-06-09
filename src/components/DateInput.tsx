@@ -1,5 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, Keyboard } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Platform,
+  Keyboard,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useColors } from '../hooks/useColors';
 import { format, parse, isValid } from 'date-fns';
@@ -10,6 +18,7 @@ interface DateInputProps {
   onChangeText: (value: string) => void;
   error?: string;
   placeholder?: string;
+  testID?: string;
 }
 
 export const DateInput: React.FC<DateInputProps> = ({
@@ -18,6 +27,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   onChangeText,
   error,
   placeholder = 'DD/MM/AAAA',
+  testID,
 }) => {
   const colors = useColors();
   const [showPicker, setShowPicker] = useState(false);
@@ -45,7 +55,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowPicker(false);
-      
+
       if (event.type === 'set' && selectedDate) {
         const formatted = format(selectedDate, 'dd/MM/yyyy');
         onChangeText(formatted);
@@ -74,14 +84,14 @@ export const DateInput: React.FC<DateInputProps> = ({
 
   const handleTextChange = (text: string) => {
     let formatted = text.replace(/\D/g, '');
-    
+
     if (formatted.length >= 2) {
       formatted = formatted.slice(0, 2) + '/' + formatted.slice(2);
     }
     if (formatted.length >= 5) {
       formatted = formatted.slice(0, 5) + '/' + formatted.slice(5);
     }
-    
+
     formatted = formatted.slice(0, 10);
     onChangeText(formatted);
   };
@@ -89,7 +99,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   const openPicker = () => {
     Keyboard.dismiss();
     inputRef.current?.blur();
-    
+
     // Inicializa tempDate com a data atual ou valor do campo ANTES de abrir
     const initialDate = parseDateFromString(value) || new Date();
     setTempDate(initialDate);
@@ -99,43 +109,47 @@ export const DateInput: React.FC<DateInputProps> = ({
   return (
     <View style={styles.container}>
       {label ? <Text style={[styles.label, { color: colors.text }]}>{label}</Text> : null}
-      
+
       <View style={styles.inputRow}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.input,
             {
               backgroundColor: colors.card,
-              borderColor: error ? (colors.error || '#DC2626') : colors.border,
+              borderColor: error ? colors.error || '#DC2626' : colors.border,
             },
           ]}
           onPress={openPicker}
           activeOpacity={0.7}
+          testID={testID ? `${testID}-input` : undefined}
+          accessibilityLabel={testID ? `${testID}-input` : undefined}
         >
-          <Text style={[
-            styles.inputText,
-            { 
-              color: value ? textColor : colors.textSecondary,
-              fontWeight: value ? '500' : '400',
-            }
-          ]}>
+          <Text
+            style={[
+              styles.inputText,
+              {
+                color: value ? textColor : colors.textSecondary,
+                fontWeight: value ? '500' : '400',
+              },
+            ]}
+          >
             {value || placeholder}
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.calendarButton, { backgroundColor: colors.primary }]}
           onPress={openPicker}
           activeOpacity={0.7}
+          testID={testID ? `${testID}-button` : undefined}
+          accessibilityLabel={testID ? `${testID}-button` : undefined}
         >
           <Text style={styles.calendarIcon}>📅</Text>
         </TouchableOpacity>
       </View>
 
       {error ? (
-        <Text style={[styles.errorText, { color: colors.error || '#DC2626' }]}>
-          {error}
-        </Text>
+        <Text style={[styles.errorText, { color: colors.error || '#DC2626' }]}>{error}</Text>
       ) : null}
 
       {showPicker && tempDate && (
@@ -158,9 +172,13 @@ export const DateInput: React.FC<DateInputProps> = ({
               >
                 <Text style={[styles.iosButtonText, { color: colors.text }]}>Cancelar</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={[styles.iosButton, styles.confirmButton, { backgroundColor: colors.primary }]}
+                style={[
+                  styles.iosButton,
+                  styles.confirmButton,
+                  { backgroundColor: colors.primary },
+                ]}
                 onPress={handleConfirmIOS}
               >
                 <Text style={[styles.iosButtonText, { color: '#FFFFFF' }]}>Confirmar</Text>

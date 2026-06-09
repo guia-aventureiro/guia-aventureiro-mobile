@@ -13,7 +13,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { useColors } from '../hooks/useColors';
-import { validatePasswordStrength, getPasswordStrengthColor, getPasswordStrengthLabel } from '../utils/passwordValidator';
+import {
+  validatePasswordStrength,
+  getPasswordStrengthColor,
+  getPasswordStrengthLabel,
+} from '../utils/passwordValidator';
 
 export const SignupScreen = ({ navigation }: any) => {
   const colors = useColors();
@@ -23,7 +27,11 @@ export const SignupScreen = ({ navigation }: any) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [], isValid: false });
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    feedback: [],
+    isValid: false,
+  });
   const [errors, setErrors] = useState({
     name: '',
     email: '',
@@ -97,10 +105,7 @@ export const SignupScreen = ({ navigation }: any) => {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.logo}>✈️</Text>
           <Text style={[styles.title, { color: colors.text }]}>Guia do Aventureiro</Text>
@@ -115,6 +120,7 @@ export const SignupScreen = ({ navigation }: any) => {
             onChangeText={setName}
             error={errors.name}
             autoCapitalize="words"
+            testID="signup-name"
           />
 
           <Input
@@ -126,6 +132,7 @@ export const SignupScreen = ({ navigation }: any) => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            testID="signup-email"
           />
 
           <Input
@@ -136,6 +143,7 @@ export const SignupScreen = ({ navigation }: any) => {
             error={errors.password}
             secureTextEntry
             autoCapitalize="none"
+            testID="signup-password"
           />
 
           {password.length > 0 && (
@@ -144,7 +152,12 @@ export const SignupScreen = ({ navigation }: any) => {
                 <Text style={[styles.strengthLabel, { color: colors.textSecondary }]}>
                   Força da senha:
                 </Text>
-                <Text style={[styles.strengthValue, { color: getPasswordStrengthColor(passwordStrength.score) }]}>
+                <Text
+                  style={[
+                    styles.strengthValue,
+                    { color: getPasswordStrengthColor(passwordStrength.score) },
+                  ]}
+                >
                   {getPasswordStrengthLabel(passwordStrength.score)}
                 </Text>
               </View>
@@ -167,7 +180,10 @@ export const SignupScreen = ({ navigation }: any) => {
               {passwordStrength.feedback.length > 0 && (
                 <View style={styles.feedbackContainer}>
                   {passwordStrength.feedback.slice(0, 2).map((feedback, index) => (
-                    <Text key={index} style={[styles.feedbackText, { color: colors.textSecondary }]}>
+                    <Text
+                      key={index}
+                      style={[styles.feedbackText, { color: colors.textSecondary }]}
+                    >
                       • {feedback}
                     </Text>
                   ))}
@@ -184,6 +200,7 @@ export const SignupScreen = ({ navigation }: any) => {
             error={errors.confirmPassword}
             secureTextEntry
             autoCapitalize="none"
+            testID="signup-confirm-password"
           />
 
           <Button
@@ -191,11 +208,13 @@ export const SignupScreen = ({ navigation }: any) => {
             onPress={handleSignup}
             loading={loading}
             style={styles.signupButton}
+            testID="signup-submit"
           />
 
           <TouchableOpacity
             onPress={() => navigation.navigate('Login')}
             style={styles.loginLink}
+            testID="signup-go-login"
           >
             <Text style={[styles.loginText, { color: colors.textSecondary }]}>
               Já tem uma conta?{' '}

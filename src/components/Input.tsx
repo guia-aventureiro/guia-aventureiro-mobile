@@ -1,30 +1,26 @@
 // Utilitário para formatar valores em Real brasileiro
 export function formatBRL(value: number | string) {
-  let num = typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
+  let num =
+    typeof value === 'string' ? Number(value.toString().replace(/[^\d]/g, '')) / 100 : value;
   if (isNaN(num)) num = 0;
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 import React from 'react';
-import {
-  TextInput,
-  View,
-  Text,
-  StyleSheet,
-  TextInputProps,
-  ViewStyle,
-} from 'react-native';
+import { TextInput, View, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
 import { useColors } from '../hooks/useColors';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
+  testID?: string;
 }
 
 export const Input: React.FC<InputProps> = ({
   label,
   error,
   containerStyle,
+  testID,
   style,
   editable = true,
   ...props
@@ -39,7 +35,7 @@ export const Input: React.FC<InputProps> = ({
           styles.input,
           {
             backgroundColor: colors.card,
-            borderColor: error ? (colors.error || '#DC2626') : colors.border,
+            borderColor: error ? colors.error || '#DC2626' : colors.border,
             color: colors.text,
           },
           editable === false && {
@@ -50,9 +46,13 @@ export const Input: React.FC<InputProps> = ({
         ]}
         placeholderTextColor={colors.textSecondary}
         editable={editable}
+        testID={testID}
+        accessibilityLabel={testID}
         {...props}
       />
-      {error ? <Text style={[styles.errorText, { color: colors.error || '#DC2626' }]}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.errorText, { color: colors.error || '#DC2626' }]}>{error}</Text>
+      ) : null}
     </View>
   );
 };

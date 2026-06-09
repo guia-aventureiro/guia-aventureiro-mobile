@@ -34,14 +34,16 @@ const slides: OnboardingSlide[] = [
   {
     id: '2',
     title: 'IA Inteligente 🤖',
-    description: 'Nossa IA cria roteiros completos baseados em suas preferências, orçamento e estilo de viagem.',
+    description:
+      'Nossa IA cria roteiros completos baseados em suas preferências, orçamento e estilo de viagem.',
     icon: '🧠',
     color: '#6c5ce7',
   },
   {
     id: '3',
     title: 'Planeje Cada Detalhe 📋',
-    description: 'Organize cada dia da sua viagem com atividades, horários, locais e orçamento estimado.',
+    description:
+      'Organize cada dia da sua viagem com atividades, horários, locais e orçamento estimado.',
     icon: '📍',
     color: '#00b894',
   },
@@ -115,7 +117,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
           key={index}
           style={[
             styles.dot,
-            index === currentIndex ? styles.dotActive : [styles.dotInactive, { backgroundColor: colors.border }],
+            index === currentIndex
+              ? styles.dotActive
+              : [styles.dotInactive, { backgroundColor: colors.border }],
             index === currentIndex && { backgroundColor: slides[currentIndex].color },
           ]}
         />
@@ -127,7 +131,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Skip button */}
       {currentIndex < slides.length - 1 && (
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleSkip}
+          testID="onboarding-skip"
+          accessibilityLabel="onboarding-skip"
+        >
           <Text style={[styles.skipText, { color: colors.textSecondary }]}>Pular</Text>
         </TouchableOpacity>
       )}
@@ -151,23 +160,33 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       {/* Footer */}
       <View style={styles.footer}>
         {/* Toggle para não mostrar novamente */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, gap: 10 }}>
-          <Text style={{ fontSize: 14, color: colors.textSecondary }}>
-            Não mostrar novamente
-          </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontSize: 14, color: colors.textSecondary }}>Não mostrar novamente</Text>
           <Switch
             value={dontShowAgain}
             onValueChange={setDontShowAgain}
             trackColor={{ false: colors.border, true: slides[currentIndex].color + '80' }}
             thumbColor={dontShowAgain ? slides[currentIndex].color : colors.card}
+            testID="onboarding-toggle"
+            accessibilityLabel="onboarding-toggle"
           />
         </View>
-        
+
         {renderDots()}
-        
+
         <TouchableOpacity
           style={[styles.nextButton, { backgroundColor: slides[currentIndex].color }]}
           onPress={handleNext}
+          testID="onboarding-next"
+          accessibilityLabel="onboarding-next"
         >
           <Text style={styles.nextButtonText}>
             {currentIndex === slides.length - 1 ? 'Começar' : 'Próximo'}

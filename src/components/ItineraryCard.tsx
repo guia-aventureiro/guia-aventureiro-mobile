@@ -66,6 +66,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
       style={[styles.card, { backgroundColor: colors.card }]}
       onPress={onPress}
       activeOpacity={0.7}
+      testID={`itinerary-card-${itinerary._id}`}
     >
       <Image
         source={{ uri: imageUri }}

@@ -20,11 +20,14 @@ const storeTokensSecurely = async (accessToken: string, refreshToken: string) =>
 };
 
 // Helper to load tokens securely
-const loadTokensSecurely = async (): Promise<{ accessToken: string | null; refreshToken: string | null }> => {
+const loadTokensSecurely = async (): Promise<{
+  accessToken: string | null;
+  refreshToken: string | null;
+}> => {
   try {
     const accessToken = await SecureStore.getItemAsync('accessToken');
     const refreshToken = await SecureStore.getItemAsync('refreshToken');
-    
+
     // Fallback: check AsyncStorage for migration
     if (!accessToken) {
       const asyncAccessToken = await AsyncStorage.getItem('accessToken');
@@ -33,7 +36,7 @@ const loadTokensSecurely = async (): Promise<{ accessToken: string | null; refre
         await AsyncStorage.removeItem('accessToken');
       }
     }
-    
+
     if (!refreshToken) {
       const asyncRefreshToken = await AsyncStorage.getItem('refreshToken');
       if (asyncRefreshToken) {
@@ -41,7 +44,7 @@ const loadTokensSecurely = async (): Promise<{ accessToken: string | null; refre
         await AsyncStorage.removeItem('refreshToken');
       }
     }
-    
+
     return {
       accessToken: await SecureStore.getItemAsync('accessToken'),
       refreshToken: await SecureStore.getItemAsync('refreshToken'),
@@ -69,7 +72,7 @@ export const authService = {
     await storeTokensSecurely(accessToken, refreshToken);
     // Store user data (non-sensitive) in AsyncStorage
     await AsyncStorage.setItem('user', JSON.stringify(user));
-    
+
     // Analytics: novo cadastro
     await analyticsService.logSignUp('email');
 
@@ -89,7 +92,7 @@ export const authService = {
       await storeTokensSecurely(accessToken, refreshToken);
       // Store user data (non-sensitive) in AsyncStorage
       await AsyncStorage.setItem('user', JSON.stringify(user));
-      
+
       // Analytics: login realizado
       await analyticsService.logLogin('email');
 
@@ -152,7 +155,7 @@ export const authService = {
   async loadStoredAuth() {
     // Load tokens from secure store
     const { accessToken, refreshToken } = await loadTokensSecurely();
-    
+
     // Load user from AsyncStorage
     const userJson = await AsyncStorage.getItem('user');
 
