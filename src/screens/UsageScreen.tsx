@@ -315,7 +315,7 @@ export const UsageScreen = ({ navigation }: any) => {
 
             <View style={styles.featuresList}>
               {Object.entries(planDetails.features)
-                .filter(([_, enabled]) => enabled)
+                .filter(([key, enabled]) => enabled && key !== 'exportPDF')
                 .map(([key, _]) => (
                   <View key={key} style={styles.featureItem}>
                     <Ionicons name="checkmark-circle" size={20} color={colors.success} />
@@ -340,7 +340,6 @@ const getFeatureLabel = (key: string): string => {
     publicSharing: 'Compartilhar roteiros',
     photoUpload: 'Upload de fotos',
     offlineMode: 'Modo offline',
-    exportPDF: 'Exportar PDF',
     prioritySupport: 'Suporte prioritário',
     removeAds: 'Sem anúncios',
     earlyAccess: 'Acesso antecipado',

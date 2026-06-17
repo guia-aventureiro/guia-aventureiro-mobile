@@ -45,19 +45,19 @@ export const LimitModal: React.FC<LimitModalProps> = ({
 
   const getFriendlyMessage = () => {
     const isMonthlyLimit = limitError.error === 'monthly_limit_reached';
-    
+
     if (isMonthlyLimit) {
       return `Você já criou ${limitError.currentUsage} roteiros este mês! Isso mostra que você está adorando planejar viagens. Faça upgrade para continuar criando sem limites! 🚀`;
     }
-    
+
     if (limitError.message.includes('roteiro')) {
       return `Você aproveitou bem seus ${limitError.limit} roteiros do plano Gratuito! Pronto para criar ainda mais viagens incríveis? 🗺️`;
     }
-    
+
     if (limitError.message.includes('foto')) {
       return 'Upload de fotos está disponível no plano Premium! Eternize suas memórias de viagem com fotos lindas. 📸';
     }
-    
+
     return limitError.message;
   };
 
@@ -70,7 +70,6 @@ export const LimitModal: React.FC<LimitModalProps> = ({
           'Upload de 20 fotos por roteiro',
           'Compartilhar roteiros individualmente',
           'Modo offline',
-          'Exportar PDF',
           'Sem anúncios',
         ],
       },
@@ -92,10 +91,10 @@ export const LimitModal: React.FC<LimitModalProps> = ({
     return (
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
-          <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>
-            Você já usou:
-          </Text>
-          <Text style={[styles.progressValue, { color: isAtLimit ? colors.warning : colors.primary }]}>
+          <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>Você já usou:</Text>
+          <Text
+            style={[styles.progressValue, { color: isAtLimit ? colors.warning : colors.primary }]}
+          >
             {limitError.currentUsage}/{limitError.limit} {isAtLimit ? '✨' : ''}
           </Text>
         </View>
@@ -103,7 +102,10 @@ export const LimitModal: React.FC<LimitModalProps> = ({
           <View
             style={[
               styles.progressFill,
-              { width: `${percentage}%`, backgroundColor: isAtLimit ? colors.warning : colors.primary },
+              {
+                width: `${percentage}%`,
+                backgroundColor: isAtLimit ? colors.warning : colors.primary,
+              },
             ]}
           />
         </View>
@@ -112,23 +114,11 @@ export const LimitModal: React.FC<LimitModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <BlurView intensity={80} style={styles.backdrop}>
-        <TouchableOpacity
-          style={styles.backdropTouchable}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        <TouchableOpacity style={styles.backdropTouchable} activeOpacity={1} onPress={onClose} />
         <View style={[styles.container, { backgroundColor: colors.card }]}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
             {/* Header */}
             <View style={styles.header}>
               <View style={[styles.iconContainer, { backgroundColor: `${colors.warning}15` }]}>
@@ -173,9 +163,7 @@ export const LimitModal: React.FC<LimitModalProps> = ({
                 {getNextPlanBenefits().map((benefit, index) => (
                   <View key={index} style={styles.benefitItem}>
                     <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                    <Text style={[styles.benefitText, { color: colors.text }]}>
-                      {benefit}
-                    </Text>
+                    <Text style={[styles.benefitText, { color: colors.text }]}>{benefit}</Text>
                   </View>
                 ))}
               </View>
@@ -192,9 +180,7 @@ export const LimitModal: React.FC<LimitModalProps> = ({
                 variant="primary"
               />
               <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
-                <Text style={[styles.cancelText, { color: colors.textSecondary }]}>
-                  Agora não
-                </Text>
+                <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Agora não</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

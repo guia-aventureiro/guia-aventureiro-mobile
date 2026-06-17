@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  InteractionManager,
 } from 'react-native';
 import { showAlert } from '../components/CustomAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,6 +39,54 @@ function formatBRL(value: number | string) {
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 import budgetService from '../services/budgetService';
+
+const formatDayDateLabel = (value: any) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Data inválida';
+  }
+  return format(date, "dd 'de' MMMM", { locale: ptBR });
+};
+
+const buildDisplayDays = (itinerary: any) => {
+  const existingDays = Array.isArray(itinerary?.days) ? itinerary.days : [];
+
+  const start = new Date(itinerary?.startDate);
+  const end = new Date(itinerary?.endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return existingDays;
+  }
+
+  const startUtc = new Date(start);
+  const endUtc = new Date(end);
+  startUtc.setUTCHours(0, 0, 0, 0);
+  endUtc.setUTCHours(0, 0, 0, 0);
+
+  const totalDays = Math.max(
+    1,
+    Math.floor((endUtc.getTime() - startUtc.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  );
+
+  if (existingDays.length === totalDays) {
+    return existingDays;
+  }
+
+  return Array.from({ length: totalDays }, (_, index) => {
+    const existingDay = existingDays[index] || {};
+    const currentDate = new Date(startUtc);
+    currentDate.setUTCDate(startUtc.getUTCDate() + index);
+
+    return {
+      _id: existingDay._id,
+      date: existingDay.date || currentDate.toISOString(),
+      dayNumber: existingDay.dayNumber || index + 1,
+      title: existingDay.title || `Dia ${index + 1}`,
+      activities: Array.isArray(existingDay.activities) ? existingDay.activities : [],
+      dailyBudget: existingDay.dailyBudget || 0,
+      notes: existingDay.notes || '',
+    };
+  });
+};
 
 // ========== DADOS MOCKADOS PARA PREVIEW ==========
 const getMockItinerary = (id: string): Itinerary | null => {
@@ -807,7 +856,7 @@ const getMockItinerary = (id: string): Itinerary | null => {
 // ================================================
 
 export const ItineraryDetailScreen = ({ route, navigation }: any) => {
-  const { id, refresh } = route.params;
+  const { id, refresh, mockData: routeMockData } = route.params;
   const colors = useColors();
   const { user } = useAuth();
   const { toast, hideToast, success, error: showError } = useToast();
@@ -859,7 +908,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
           // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
           if (id.startsWith('mock-')) {
             await new Promise((resolve) => setTimeout(resolve, 500)); // Simula delay
-            const mockData = getMockItinerary(id);
+            const mockData = routeMockData || getMockItinerary(id);
 
             if (mockData && isMounted) {
               setItinerary(mockData);
@@ -925,7 +974,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       // ========== USAR DADOS MOCKADOS SE ID COMEÇAR COM 'mock-' ==========
       if (id.startsWith('mock-')) {
         await new Promise((resolve) => setTimeout(resolve, 300));
-        const mockData = getMockItinerary(id);
+        const mockData = routeMockData || getMockItinerary(id);
         if (mockData) {
           setItinerary(mockData);
           return;
@@ -1187,19 +1236,42 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
       showAlert('Roteiro de Demonstração', 'Este é um roteiro de exemplo.');
       return;
     }
-    setShareModalVisible(true);
+
+    // Evita engasgo ao abrir modal no mesmo frame do toque.
+    InteractionManager.runAfterInteractions(() => {
+      setShareModalVisible(true);
+    });
   };
 
   const handleUseItinerary = async () => {
     // Para mocks: cria uma cópia real no usuário com base no roteiro de sugestão
     if (isMockPreview) {
       try {
-        const mockData = getMockItinerary(id);
+        const mockData = itinerary || routeMockData || getMockItinerary(id);
 
         if (!mockData) {
           showError('Roteiro de demonstração não encontrado.');
           return;
         }
+
+        // Sanitizar IDs mockados (_id como "day-1", "act-1") para evitar CastError no backend.
+        const sanitizedDays = (mockData.days || []).map((day: any) => ({
+          date: day.date,
+          dayNumber: day.dayNumber,
+          title: day.title,
+          dailyBudget: day.dailyBudget || 0,
+          notes: day.notes || '',
+          activities: (day.activities || []).map((activity: any) => ({
+            time: activity.time,
+            title: activity.title,
+            description: activity.description || '',
+            location: activity.location,
+            estimatedCost: activity.estimatedCost ?? activity.cost ?? 0,
+            duration: activity.duration || 60,
+            category: activity.category || 'atracao',
+            completed: activity.completed ?? activity.isCompleted ?? false,
+          })),
+        }));
 
         const created = await itineraryService.create({
           title: `${mockData.title} (minha versão)`,
@@ -1212,7 +1284,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
             currency: mockData.budget.currency || 'BRL',
           },
           preferences: mockData.preferences,
-          days: mockData.days,
+          days: sanitizedDays,
           status: 'rascunho',
           generatedByAI: mockData.generatedByAI || false,
           isPublic: false,
@@ -1254,6 +1326,8 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
   if (!itinerary) {
     return null;
   }
+
+  const displayDays = buildDisplayDays(itinerary);
 
   const startDate = format(new Date(itinerary.startDate), "dd 'de' MMMM", { locale: ptBR });
   const endDate = format(new Date(itinerary.endDate), "dd 'de' MMMM 'de' yyyy", {
@@ -1460,16 +1534,19 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         {/* Dias */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Roteiro dia a dia</Text>
-          {itinerary.days &&
-            Array.isArray(itinerary.days) &&
-            itinerary.days.map((day, index) => (
-              <View key={day._id} style={[styles.dayCard, { backgroundColor: colors.card }]}>
+          {displayDays &&
+            Array.isArray(displayDays) &&
+            displayDays.map((day, index) => (
+              <View
+                key={day._id || `day-${index}`}
+                style={[styles.dayCard, { backgroundColor: colors.card }]}
+              >
                 <View style={styles.dayHeader}>
                   <Text style={[styles.dayNumber, { color: colors.primary }]}>
                     Dia {day.dayNumber}
                   </Text>
                   <Text style={[styles.dayDate, { color: colors.textSecondary }]}>
-                    {format(new Date(day.date), "dd 'de' MMMM", { locale: ptBR })}
+                    {formatDayDateLabel(day.date)}
                   </Text>
                 </View>
                 <Text style={[styles.dayTitle, { color: colors.text }]}>{day.title}</Text>
@@ -1478,7 +1555,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
                   Array.isArray(day.activities) &&
                   day.activities.map((activity, actIndex) => (
                     <View
-                      key={activity._id}
+                      key={activity._id || `act-${index}-${actIndex}`}
                       style={[styles.activityCard, { backgroundColor: colors.background }]}
                     >
                       <View style={styles.activityHeader}>
@@ -1530,6 +1607,14 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
                       </View>
                     </View>
                   ))}
+
+                {(!Array.isArray(day.activities) || day.activities.length === 0) && (
+                  <View style={[styles.activityCard, { backgroundColor: colors.background }]}>
+                    <Text style={[styles.activityTitle, { color: colors.textSecondary }]}>
+                      Nenhuma atividade neste dia.
+                    </Text>
+                  </View>
+                )}
               </View>
             ))}
         </View>
@@ -1570,6 +1655,7 @@ export const ItineraryDetailScreen = ({ route, navigation }: any) => {
         itineraryId={id}
         itineraryTitle={itinerary?.title || ''}
         existingShareLink={itinerary?.publicLink}
+        currentPlan={subscriptionData?.subscription?.plan || 'free'}
         onUpgradePress={() => navigation.navigate('Pricing')}
         onSuccess={(message) => {
           success(message);

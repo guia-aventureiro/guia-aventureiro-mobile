@@ -47,6 +47,23 @@ export const DashboardScreen = ({ navigation }: any) => {
   const { canCreateItinerary, usage, plan } = useCanPerformAction();
   const { data: subscriptionData, refetch: refetchSubscription } = useMySubscription();
   const { refetch: refetchUsage } = useUsage();
+  const offlineEnabled =
+    subscriptionData?.subscription?.planDetails?.features?.offlineMode === true;
+  const errorRef = useRef(error);
+  const refetchUsageRef = useRef(refetchUsage);
+  const refetchSubscriptionRef = useRef(refetchSubscription);
+
+  useEffect(() => {
+    errorRef.current = error;
+  }, [error]);
+
+  useEffect(() => {
+    refetchUsageRef.current = refetchUsage;
+  }, [refetchUsage]);
+
+  useEffect(() => {
+    refetchSubscriptionRef.current = refetchSubscription;
+  }, [refetchSubscription]);
 
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [filteredItineraries, setFilteredItineraries] = useState<Itinerary[]>([]);
@@ -94,50 +111,65 @@ export const DashboardScreen = ({ navigation }: any) => {
         console.log('📥 Roteiros carregados:', data.length, 'itens');
         setItineraries(data);
 
-        // Salvar offline para acesso futuro
-        await offlineService.saveItinerariesOffline(data);
+        // Salvar offline para acesso futuro (somente Premium)
+        if (offlineEnabled) {
+          await offlineService.saveItinerariesOffline(data);
+        }
       } else {
-        // Offline: buscar do cache
-        const cachedData = await offlineService.getOfflineItineraries();
-        setItineraries(cachedData);
+        // Offline: fallback para cache apenas no plano Premium
+        if (offlineEnabled) {
+          const cachedData = await offlineService.getOfflineItineraries();
+          setItineraries(cachedData);
+        } else {
+          setHasError(true);
+          setItineraries([]);
+          errorRef.current('Sem conexão. Modo offline disponível no Premium.');
+        }
       }
     } catch (err: any) {
       // Se for erro 401, sessão já foi tratada pelo interceptor (não logar)
       if (err.response?.status === 401) {
-        // Tentar carregar do cache sem mostrar erro (usuário já viu "Sessão Expirada")
-        const cachedData = await offlineService.getOfflineItineraries();
-        if (cachedData.length > 0) {
-          setItineraries(cachedData);
+        // No Premium, tentar cache sem mostrar erro (usuário já viu "Sessão Expirada")
+        if (offlineEnabled) {
+          const cachedData = await offlineService.getOfflineItineraries();
+          if (cachedData.length > 0) {
+            setItineraries(cachedData);
+          }
         }
       } else {
         // Outros erros: logar e tentar carregar do cache
         console.error('Erro ao carregar roteiros:', err);
 
-        const cachedData = await offlineService.getOfflineItineraries();
-        if (cachedData.length > 0) {
-          setItineraries(cachedData);
-          error('Sem conexão. Mostrando roteiros salvos.');
+        if (offlineEnabled) {
+          const cachedData = await offlineService.getOfflineItineraries();
+          if (cachedData.length > 0) {
+            setItineraries(cachedData);
+            errorRef.current('Sem conexão. Mostrando roteiros salvos.');
+          } else {
+            setHasError(true);
+            errorRef.current('Erro ao carregar roteiros');
+          }
         } else {
           setHasError(true);
-          error('Erro ao carregar roteiros');
+          errorRef.current('Erro ao carregar roteiros');
         }
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []); // Sem dependências para evitar recriação
+  }, [offlineEnabled]);
 
   // Recarregar sempre que a tela ganhar foco
   useFocusEffect(
     useCallback(() => {
       if (user) {
-        loadItineraries();
+        void loadItineraries();
         // Atualizar estatísticas ao ganhar foco
-        refetchUsage();
-        refetchSubscription();
+        refetchUsageRef.current();
+        refetchSubscriptionRef.current();
       }
-    }, [user, loadItineraries, refetchUsage, refetchSubscription])
+    }, [user, loadItineraries])
   );
 
   // Mostrar tooltip para criar primeiro roteiro
@@ -300,7 +332,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'left', 'right']}
     >
-      <OfflineIndicator />
+      {offlineEnabled && <OfflineIndicator />}
 
       <View style={{ flex: 1 }}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

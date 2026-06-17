@@ -58,6 +58,7 @@ const GenerateStack = () => {
     >
       <Stack.Screen name="GenerateMain" component={GenerateScreen} />
       <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
+      <Stack.Screen name="EditItinerary" component={EditItineraryScreen} />
       <Stack.Screen name="Budget" component={BudgetScreen} />
       <Stack.Screen name="Map" component={MapScreen} />
       <Stack.Screen name="Pricing" component={PricingScreen} />
@@ -99,6 +100,7 @@ const ExploreStack = () => {
       <Stack.Screen name="ExploreMain" component={ExploreScreen} />
       <Stack.Screen name="RecommendationsMain" component={RecommendationsScreen} />
       <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
+      <Stack.Screen name="EditItinerary" component={EditItineraryScreen} />
       <Stack.Screen name="Budget" component={BudgetScreen} />
       <Stack.Screen name="Map" component={MapScreen} />
       <Stack.Screen name="Pricing" component={PricingScreen} />
@@ -119,6 +121,7 @@ const NotificationsStack = () => {
     >
       <Stack.Screen name="NotificationsMain" component={NotificationsScreen} />
       <Stack.Screen name="ItineraryDetail" component={ItineraryDetailScreen} />
+      <Stack.Screen name="EditItinerary" component={EditItineraryScreen} />
       <Stack.Screen name="Pricing" component={PricingScreen} />
       <Stack.Screen name="Usage" component={UsageScreen} />
       <Stack.Screen name="UpgradeWebview" component={UpgradeWebviewScreen} />

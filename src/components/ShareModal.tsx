@@ -16,7 +16,6 @@ import * as Clipboard from 'expo-clipboard';
 import { showAlert } from './CustomAlert';
 import { useColors } from '../hooks/useColors';
 import { useToast } from '../hooks/useToast';
-import { useMySubscription } from '../hooks/useSubscription';
 import { itineraryService } from '../services/itineraryService';
 import { Colors } from '../constants/colors';
 import { Toast } from './Toast';
@@ -27,6 +26,7 @@ interface ShareModalProps {
   itineraryId: string;
   itineraryTitle: string;
   existingShareLink?: string;
+  currentPlan?: string;
   onUpgradePress?: () => void;
   onSuccess?: (message: string) => void;
 }
@@ -37,17 +37,15 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   itineraryId,
   itineraryTitle,
   existingShareLink,
+  currentPlan = 'free',
   onUpgradePress,
   onSuccess,
 }) => {
   const colors = useColors();
   const { toast, hideToast, success } = useToast();
-  const { data: subscriptionData } = useMySubscription();
   const [shareLink, setShareLink] = useState(existingShareLink || '');
   const [loading, setLoading] = useState(false);
   const isMounted = useRef(true);
-
-  const currentPlan = subscriptionData?.subscription?.plan || 'free';
 
   useEffect(() => {
     return () => {

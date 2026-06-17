@@ -154,12 +154,6 @@ export default function UpgradeScreen() {
             iconColor={colors.success}
             textColor={colors.textSecondary}
           />
-          <BenefitItem
-            icon="✓"
-            text="Exportação de roteiros em PDF"
-            iconColor={colors.success}
-            textColor={colors.textSecondary}
-          />
         </View>
 
         {/* Campo de Cartão */}

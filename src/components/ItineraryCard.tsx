@@ -6,6 +6,7 @@ import { useColors } from '../hooks/useColors';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { StatusBadge } from './StatusBadge';
+import { SmartImage } from './SmartImage';
 
 interface ItineraryCardProps {
   itinerary: Itinerary;
@@ -53,6 +54,12 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
     setImageUri(resolvedImageUri);
   }, [resolvedImageUri]);
 
+  useEffect(() => {
+    if (imageUri) {
+      void Image.prefetch(imageUri);
+    }
+  }, [imageUri]);
+
   const statusLabels = {
     rascunho: 'Rascunho',
     planejando: 'Planejando',
@@ -68,15 +75,7 @@ export const ItineraryCard: React.FC<ItineraryCardProps> = ({ itinerary, onPress
       activeOpacity={0.7}
       testID={`itinerary-card-${itinerary._id}`}
     >
-      <Image
-        source={{ uri: imageUri }}
-        style={styles.image}
-        onError={() => {
-          if (imageUri !== fallbackImage) {
-            setImageUri(fallbackImage);
-          }
-        }}
-      />
+      <SmartImage uri={imageUri} fallbackUri={fallbackImage} style={styles.image} />
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
           {itinerary.title}

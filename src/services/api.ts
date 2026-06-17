@@ -32,6 +32,14 @@ const RETRYABLE_GATEWAY_STATUS = new Set([502, 503, 504]);
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const MAX_GATEWAY_RETRIES = 2;
 
+const normalizeTokenValue = (token?: string | null): string | null => {
+  const normalized = (token || '').trim();
+  if (!normalized || normalized === 'null' || normalized === 'undefined') {
+    return null;
+  }
+  return normalized;
+};
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const api = axios.create({
@@ -53,13 +61,13 @@ if (!__DEV__ && ENV.apiUrl && !ENV.apiUrl.startsWith('https://')) {
 const getSecureToken = async (key: string): Promise<string | null> => {
   try {
     // Try secure store first (new way)
-    const secureToken = await SecureStore.getItemAsync(key);
+    const secureToken = normalizeTokenValue(await SecureStore.getItemAsync(key));
     if (secureToken) {
       return secureToken;
     }
 
     // Fallback to AsyncStorage for migration (old way) - but don't use beyond migration
-    const asyncToken = await AsyncStorage.getItem(key);
+    const asyncToken = normalizeTokenValue(await AsyncStorage.getItem(key));
     if (asyncToken && secureToken === null) {
       // Migrate to secure store
       await SecureStore.setItemAsync(key, asyncToken);
@@ -77,8 +85,14 @@ const getSecureToken = async (key: string): Promise<string | null> => {
 
 const setSecureToken = async (key: string, value: string): Promise<void> => {
   try {
+    const sanitizedValue = normalizeTokenValue(value);
+    if (!sanitizedValue) {
+      await removeSecureToken(key);
+      return;
+    }
+
     // Store in secure store
-    await SecureStore.setItemAsync(key, value);
+    await SecureStore.setItemAsync(key, sanitizedValue);
     // Also clear from AsyncStorage for security
     await AsyncStorage.removeItem(key);
   } catch (error) {
@@ -105,6 +119,8 @@ api.interceptors.request.use(
     const token = await getSecureToken('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (config.headers?.Authorization) {
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -150,10 +166,17 @@ api.interceptors.response.use(
             refreshToken,
           });
 
-          await setSecureToken('accessToken', data.accessToken);
-          await setSecureToken('refreshToken', data.refreshToken);
+          const nextAccessToken = normalizeTokenValue(data.accessToken);
+          const nextRefreshToken = normalizeTokenValue(data.refreshToken);
 
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+          if (!nextAccessToken || !nextRefreshToken) {
+            throw new Error('Refresh retornou token inválido');
+          }
+
+          await setSecureToken('accessToken', nextAccessToken);
+          await setSecureToken('refreshToken', nextRefreshToken);
+
+          originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
           return api(originalRequest);
         }
       } catch (refreshError) {

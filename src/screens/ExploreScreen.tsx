@@ -1,5 +1,5 @@
 // mobile/src/screens/ExploreScreen.tsx
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,12 +23,44 @@ import analyticsService from '../services/analyticsService';
 import { Tooltip } from '../components/Tooltip';
 import { useTooltip } from '../hooks/useTooltip';
 import { useAuth } from '../contexts/AuthContext';
+import { SmartImage } from '../components/SmartImage';
+
+const isMockId = (id: string) => id.startsWith('mock-');
+
+const normalizeSearchText = (value?: string) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const filterItinerariesByQuery = (items: PublicItinerary[], query: string): PublicItinerary[] => {
+  const normalizedQuery = normalizeSearchText(query);
+
+  if (!normalizedQuery) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const fields = [item.title, item.destination?.city, item.destination?.country];
+
+    return fields.some((field) => normalizeSearchText(field).includes(normalizedQuery));
+  });
+};
 
 export const ExploreScreen = ({ navigation }: any) => {
   const colors = useColors();
   const { user } = useAuth();
   const { toast, hideToast, error: showError } = useToast();
   const { shouldShowTooltip, markTooltipAsShown } = useTooltip();
+  const showErrorRef = useRef(showError);
+  const loadInProgressRef = useRef(false);
+  const likeToggleLockRef = useRef<Set<string>>(new Set());
+  const [, setLikeToggleRenderTick] = useState(0);
+
+  useEffect(() => {
+    showErrorRef.current = showError;
+  }, [showError]);
   const [activeTab, setActiveTab] = useState<'discover' | 'featured' | 'saved'>('discover');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,6 +80,57 @@ export const ExploreScreen = ({ navigation }: any) => {
   const [savedPagination, setSavedPagination] = useState<any>({ page: 1, hasNext: false });
   const [savedInitialized, setSavedInitialized] = useState(false);
 
+  const applyMockLocalInteraction = useCallback(
+    (id: string, type: 'like' | 'save') => {
+      if (type === 'like') {
+        const localUserId = user?._id || '__mock_local_user__';
+        const update = (items: PublicItinerary[]) =>
+          items.map((item) =>
+            item._id === id
+              ? (() => {
+                  const likes = Array.isArray(item.likes) ? item.likes : [];
+                  const alreadyLiked = likes.some(
+                    (likeId) => String(likeId) === String(localUserId)
+                  );
+                  const nextLikes = alreadyLiked
+                    ? likes.filter((likeId) => String(likeId) !== String(localUserId))
+                    : [...likes, localUserId];
+                  const nextLikesCount = alreadyLiked
+                    ? Math.max((item.likesCount || 0) - 1, 0)
+                    : (item.likesCount || 0) + 1;
+
+                  return {
+                    ...item,
+                    likes: nextLikes,
+                    likesCount: nextLikesCount,
+                  };
+                })()
+              : item
+          );
+
+        setItineraries((prev) => update(prev));
+        setFeaturedItineraries((prev) => update(prev));
+        setSavedItineraries((prev) => update(prev));
+        return;
+      }
+
+      const source = [...itineraries, ...featuredItineraries, ...savedItineraries];
+      const found = source.find((item) => item._id === id);
+      if (!found) return;
+
+      const alreadySaved = savedItineraries.some((item) => item._id === id);
+      if (alreadySaved) {
+        setSavedItineraries((prev) => prev.filter((item) => item._id !== id));
+      } else {
+        setSavedItineraries((prev) => [
+          { ...found, savesCount: (found.savesCount || 0) + 1 },
+          ...prev,
+        ]);
+      }
+    },
+    [itineraries, featuredItineraries, savedItineraries, user?._id]
+  );
+
   const loadDiscoverItineraries = useCallback(
     async (page: number) => {
       try {
@@ -56,23 +139,36 @@ export const ExploreScreen = ({ navigation }: any) => {
           page,
           limit: 20,
         });
+        const filteredApiItineraries = filterItinerariesByQuery(
+          data.itineraries || [],
+          searchQuery
+        );
 
         if (page === 1) {
-          setItineraries(data.itineraries);
+          setItineraries(filteredApiItineraries);
+          setPagination(data.pagination);
         } else {
-          setItineraries((prev) => [...prev, ...data.itineraries]);
+          setItineraries((prev) => [...prev, ...filteredApiItineraries]);
+          setPagination(data.pagination);
         }
-        setPagination(data.pagination);
       } catch (error: any) {
-        if (error?.response?.status !== 401) {
-          showError('Erro ao carregar roteiros');
+        if (page === 1) {
+          setItineraries([]);
+          setPagination({ page: 1, hasNext: false });
+          if (error?.response?.status !== 401) {
+            showErrorRef.current('Explorar indisponível no momento. Tente novamente em instantes.');
+          }
+          return;
         }
-        throw error;
+
+        if (error?.response?.status !== 401) {
+          showErrorRef.current('Erro ao carregar roteiros');
+        }
       } finally {
         setLoadingMore(false);
       }
     },
-    [searchQuery, showError]
+    [searchQuery]
   );
 
   const loadFeaturedItineraries = useCallback(async () => {
@@ -81,35 +177,38 @@ export const ExploreScreen = ({ navigation }: any) => {
       setFeaturedItineraries(data);
     } catch (error: any) {
       if (error?.response?.status !== 401) {
-        showError('Erro ao carregar destaques');
+        showErrorRef.current('Erro ao carregar destaques');
       }
     }
-  }, [showError]);
+  }, []);
 
-  const loadSavedItineraries = useCallback(
-    async (page: number) => {
-      try {
-        const data = await exploreService.getSaved(page, 20);
+  const loadSavedItineraries = useCallback(async (page: number) => {
+    try {
+      const data = await exploreService.getSaved(page, 20);
 
-        if (page === 1) {
-          setSavedItineraries(data.itineraries);
-          setSavedInitialized(true);
-        } else {
-          setSavedItineraries((prev) => [...prev, ...data.itineraries]);
-        }
-        setSavedPagination(data.pagination);
-      } catch (error: any) {
-        if (error?.response?.status !== 401) {
-          showError('Erro ao carregar salvos');
-        }
-      } finally {
-        setLoadingMore(false);
+      if (page === 1) {
+        setSavedItineraries(data.itineraries);
+        setSavedInitialized(true);
+      } else {
+        setSavedItineraries((prev) => [...prev, ...data.itineraries]);
       }
-    },
-    [showError]
-  );
+      setSavedPagination(data.pagination);
+    } catch (error: any) {
+      if (error?.response?.status !== 401) {
+        showErrorRef.current('Erro ao carregar salvos');
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
+    if (loadInProgressRef.current) {
+      return;
+    }
+
+    loadInProgressRef.current = true;
+
     try {
       if (activeTab === 'discover') {
         await loadDiscoverItineraries(1);
@@ -120,19 +219,14 @@ export const ExploreScreen = ({ navigation }: any) => {
       }
     } catch (error: any) {
       if (error?.response?.status !== 401) {
-        showError('Erro ao carregar roteiros');
+        showErrorRef.current('Erro ao carregar roteiros');
       }
     } finally {
+      loadInProgressRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
-  }, [
-    activeTab,
-    loadDiscoverItineraries,
-    loadFeaturedItineraries,
-    loadSavedItineraries,
-    showError,
-  ]);
+  }, [activeTab, loadDiscoverItineraries, loadFeaturedItineraries, loadSavedItineraries]);
 
   // Carregar dados quando a tela ganhar foco ou mudar de aba
   useFocusEffect(
@@ -140,13 +234,13 @@ export const ExploreScreen = ({ navigation }: any) => {
       // Só recarregar se for a primeira vez ou se mudou de aba
       if (activeTab === 'discover' && itineraries.length === 0) {
         setLoading(true);
-        loadData();
+        void loadData();
       } else if (activeTab === 'featured' && featuredItineraries.length === 0) {
         setLoading(true);
-        loadData();
+        void loadData();
       } else if (activeTab === 'saved' && !savedInitialized) {
         setLoading(true);
-        loadData();
+        void loadData();
       }
     }, [activeTab, itineraries.length, featuredItineraries.length, savedInitialized, loadData])
   );
@@ -165,7 +259,7 @@ export const ExploreScreen = ({ navigation }: any) => {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    loadData();
+    void loadData();
   }, [loadData]);
 
   const handleLoadMore = useCallback(() => {
@@ -207,48 +301,61 @@ export const ExploreScreen = ({ navigation }: any) => {
   const handleToggleLike = useCallback(
     async (id: string) => {
       try {
+        if (likeToggleLockRef.current.has(id)) {
+          return;
+        }
+
+        likeToggleLockRef.current.add(id);
+
+        if (isMockId(id)) {
+          applyMockLocalInteraction(id, 'like');
+          return;
+        }
+
         const result = await exploreService.toggleLike(id);
 
-        const userId = user?._id;
-        const updateItineraries = (items: PublicItinerary[]) =>
+        const syncLikeState = (items: PublicItinerary[]) =>
           items.map((item) => {
             if (item._id === id) {
               const likes = Array.isArray(item.likes) ? item.likes : [];
-              const hasLiked = userId
-                ? likes.some((likeId) => String(likeId) === String(userId))
-                : false;
-
-              let nextLikes = likes;
-              if (userId) {
-                nextLikes = result.liked
-                  ? hasLiked
-                    ? likes
-                    : [...likes, userId]
-                  : likes.filter((likeId) => String(likeId) !== String(userId));
-              }
+              const normalizedLikes = Array.from(new Set(likes.map((likeId) => String(likeId))));
+              const nextLikes = result.liked
+                ? user?._id && !normalizedLikes.includes(String(user._id))
+                  ? [...normalizedLikes, String(user._id)]
+                  : normalizedLikes
+                : normalizedLikes.filter((likeId) => likeId !== String(user?._id));
 
               return {
                 ...item,
                 likes: nextLikes,
-                likesCount: result.likesCount,
+                likesCount:
+                  typeof result.likesCount === 'number' ? result.likesCount : nextLikes.length,
               };
             }
             return item;
           });
 
-        setItineraries(updateItineraries);
-        setFeaturedItineraries(updateItineraries);
-        setSavedItineraries(updateItineraries);
+        setItineraries(syncLikeState);
+        setFeaturedItineraries(syncLikeState);
+        setSavedItineraries(syncLikeState);
       } catch (error) {
-        showError('Erro ao curtir roteiro');
+        showErrorRef.current('Erro ao curtir roteiro');
+      } finally {
+        likeToggleLockRef.current.delete(id);
+        setLikeToggleRenderTick((value) => value + 1);
       }
     },
-    [showError, user?._id]
+    [user?._id, applyMockLocalInteraction]
   );
 
   const handleToggleSave = useCallback(
     async (id: string) => {
       try {
+        if (isMockId(id)) {
+          applyMockLocalInteraction(id, 'save');
+          return;
+        }
+
         const result = await exploreService.toggleSave(id);
 
         const updateSaved = (items: PublicItinerary[], isSaving: boolean) =>
@@ -289,10 +396,17 @@ export const ExploreScreen = ({ navigation }: any) => {
           await loadSavedItineraries(1);
         }
       } catch (error) {
-        showError('Erro ao salvar roteiro');
+        showErrorRef.current('Erro ao salvar roteiro');
       }
     },
-    [savedItineraries, itineraries, featuredItineraries, showError, loadSavedItineraries, activeTab]
+    [
+      savedItineraries,
+      itineraries,
+      featuredItineraries,
+      loadSavedItineraries,
+      activeTab,
+      applyMockLocalInteraction,
+    ]
   );
 
   const currentData = useMemo(() => {
@@ -300,6 +414,17 @@ export const ExploreScreen = ({ navigation }: any) => {
     if (activeTab === 'featured') return featuredItineraries;
     return savedItineraries;
   }, [activeTab, itineraries, featuredItineraries, savedItineraries]);
+
+  useEffect(() => {
+    const topImageUris = currentData
+      .map((item) => item.destination?.coverImage)
+      .filter((uri): uri is string => typeof uri === 'string' && uri.length > 0)
+      .slice(0, 8);
+
+    topImageUris.forEach((uri) => {
+      void Image.prefetch(uri);
+    });
+  }, [currentData]);
 
   const renderItineraryCard = useCallback(
     ({ item }: { item: PublicItinerary }) => {
@@ -311,20 +436,24 @@ export const ExploreScreen = ({ navigation }: any) => {
         ? (item.likes || []).some((likeId) => String(likeId) === String(user._id))
         : false;
       const isSaved = savedItineraries.some((i) => i._id === item._id);
+      const likesCount =
+        typeof item.likesCount === 'number' ? item.likesCount : (item.likes || []).length;
 
       return (
         <TouchableOpacity
-          onPress={() => navigation.navigate('ItineraryDetail', { id: item._id })}
+          onPress={() =>
+            navigation.navigate('ItineraryDetail', {
+              id: item._id,
+              mockData: isMockId(item._id) ? item : undefined,
+            })
+          }
           style={[styles.exploreCard, { backgroundColor: colors.card }]}
           activeOpacity={0.7}
         >
           {/* Imagem */}
-          <Image
-            source={{
-              uri:
-                item.destination?.coverImage ||
-                'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop',
-            }}
+          <SmartImage
+            uri={item.destination?.coverImage}
+            fallbackUri="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop"
             style={styles.cardImage}
           />
 
@@ -349,7 +478,7 @@ export const ExploreScreen = ({ navigation }: any) => {
                   👁️ {item.views || 0}
                 </Text>
                 <Text style={[styles.statText, { color: colors.textSecondary }]}>
-                  ❤️ {item.likesCount || 0}
+                  ❤️ {likesCount}
                 </Text>
               </View>
               <View style={styles.actionButtons}>
@@ -360,8 +489,12 @@ export const ExploreScreen = ({ navigation }: any) => {
                   }}
                   style={[
                     styles.actionButton,
-                    { backgroundColor: isLiked ? colors.primary : colors.background },
+                    {
+                      backgroundColor: isLiked ? colors.primary : colors.background,
+                      opacity: likeToggleLockRef.current.has(item._id) ? 0.6 : 1,
+                    },
                   ]}
+                  disabled={likeToggleLockRef.current.has(item._id)}
                 >
                   <Text style={styles.actionIcon}>{isLiked ? '❤️' : '🤍'}</Text>
                 </TouchableOpacity>

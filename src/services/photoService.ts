@@ -1,10 +1,10 @@
 // mobile/src/services/photoService.ts
 import * as ImagePicker from 'expo-image-picker';
 import { Platform, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import env from '../config/env';
 import analyticsService from './analyticsService';
 import { showAlert } from '../components/CustomAlert';
+import api from './api';
 
 interface UploadResult {
   url: string;
@@ -130,7 +130,7 @@ class PhotoService {
 
       // Criar FormData
       const formData = new FormData();
-      
+
       // Adicionar imagem
       const filename = uri.split('/').pop() || 'photo.jpg';
       const match = /\.(\w+)$/.exec(filename);
@@ -146,47 +146,33 @@ class PhotoService {
         formData.append('itineraryId', itineraryId);
       }
 
-      // Fazer upload
-      const token = await AsyncStorage.getItem('accessToken');
       console.log('📤 Fazendo upload para:', `${env.apiUrl}/upload`);
       console.log('📤 URI da foto:', uri);
       console.log('📤 Nome do arquivo:', filename);
       console.log('📤 Tipo:', type);
-      
-      const response = await fetch(`${env.apiUrl}/upload`, {
-        method: 'POST',
-        body: formData,
+
+      const response = await api.post('/upload', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
       });
 
       console.log('📥 Status da resposta:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        // Se for erro de limite, logar de forma diferente
-        if (response.status === 403 && errorData.error === 'limit_reached') {
+      console.log('✅ Upload concluído:', response.data);
+
+      // Analytics: foto enviada
+      await analyticsService.logPhotoUpload(1, 'camera');
+
+      return response.data.url; // Retorna apenas a URL
+    } catch (error: any) {
+      if (error?.response?.status) {
+        const errorData = error.response.data || {};
+        if (error.response.status === 403 && errorData.error === 'limit_reached') {
           console.log('ℹ️ Limite de upload atingido:', errorData);
         } else {
           console.error('❌ Erro do servidor:', errorData);
         }
-        
-        // Criar erro com response data para ser tratado pelo chamador
-        const error: any = new Error(errorData.message || 'Erro ao fazer upload da foto');
-        error.response = { status: response.status, data: errorData };
-        throw error;
       }
-
-      const data = await response.json();
-      console.log('✅ Upload concluído:', data);
-      
-      // Analytics: foto enviada
-      await analyticsService.logPhotoUpload(1, 'camera');
-      
-      return data.url; // Retorna apenas a URL
-    } catch (error: any) {
       console.error('Erro ao fazer upload:', error);
       throw error; // Lança o erro para ser tratado pelo chamador
     }
@@ -212,7 +198,7 @@ class PhotoService {
         results.push(result);
       }
     }
-    
+
     // Analytics: múltiplas fotos enviadas
     if (results.length > 0) {
       await analyticsService.logPhotoUpload(results.length, 'gallery');
@@ -233,34 +219,12 @@ class PhotoService {
         };
       }
 
-      const token = await AsyncStorage.getItem('accessToken');
-      const response = await fetch(`${env.apiUrl}/upload`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      await api.delete('/upload', {
+        data: {
           itineraryId,
           photoUrl,
-        }),
+        },
       });
-
-      if (!response.ok) {
-        let errorData: any;
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          // Se JSON parse falhar, usar resposta padrão
-          console.warn('Não foi possível parsear resposta de erro da API');
-          errorData = { message: 'Erro ao remover foto (resposta indefinida)' };
-        }
-        const message = errorData?.message || 'Erro ao remover foto';
-        return {
-          success: false,
-          message,
-        };
-      }
 
       await analyticsService.logPhotoDelete(photoUrl);
       return {
@@ -269,9 +233,10 @@ class PhotoService {
       };
     } catch (error) {
       console.error('Erro ao deletar foto:', error);
+      const message = (error as any)?.response?.data?.message;
       return {
         success: false,
-        message: 'Não foi possível remover a foto agora. Tente novamente em instantes.',
+        message: message || 'Não foi possível remover a foto agora. Tente novamente em instantes.',
       };
     }
   }
@@ -279,10 +244,7 @@ class PhotoService {
   /**
    * Mostra opções para escolher câmera ou galeria
    */
-  showImagePickerOptions(
-    onTakePhoto: () => void,
-    onPickFromGallery: () => void
-  ): void {
+  showImagePickerOptions(onTakePhoto: () => void, onPickFromGallery: () => void): void {
     if (Platform.OS === 'web') {
       // No web, apenas permitir seleção de arquivo
       onPickFromGallery();
