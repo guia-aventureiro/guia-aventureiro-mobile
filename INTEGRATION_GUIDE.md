@@ -1,22 +1,29 @@
+<!-- markdownlint-disable MD022 MD032 MD031 MD040 -->
+
 # 📱 Guia de Integração - Sistema de Assinatura Mobile
 
 ## ✅ Arquivos Criados
 
 ### **Tipos**
+
 - ✅ `src/types/subscription.ts` - Tipos TypeScript completos
 
 ### **Serviços**
+
 - ✅ `src/services/subscriptionService.ts` - API client para subscription
 
 ### **Hooks**
+
 - ✅ `src/hooks/useSubscription.ts` - Hooks React Query para dados de assinatura
 
 ### **Componentes**
+
 - ✅ `src/components/PlanBadge.tsx` - Badge do plano (Free, Premium, Pro)
 - ✅ `src/components/UsageBar.tsx` - Barra de progresso de uso
 - ✅ `src/components/LimitModal.tsx` - Modal quando atinge limite
 
 ### **Telas**
+
 - ✅ `src/screens/PricingScreen.tsx` - Tela de comparação de planos
 - ✅ `src/screens/UsageScreen.tsx` - Dashboard de uso e gerenciamento de assinatura
 
@@ -33,13 +40,13 @@ import { PricingScreen } from '../screens/PricingScreen';
 import { UsageScreen } from '../screens/UsageScreen';
 
 // Dentro do Stack.Navigator:
-<Stack.Screen 
-  name="Pricing" 
+<Stack.Screen
+  name="Pricing"
   component={PricingScreen}
   options={{ headerShown: false }}
 />
-<Stack.Screen 
-  name="Usage" 
+<Stack.Screen
+  name="Usage"
   component={UsageScreen}
   options={{ headerShown: false }}
 />
@@ -87,9 +94,9 @@ export const DashboardScreen = ({ navigation }: any) => {
   return (
     <View>
       {/* Seu código existente */}
-      <Button 
-        title="Criar Roteiro" 
-        onPress={handleCreateItinerary} 
+      <Button
+        title="Criar Roteiro"
+        onPress={handleCreateItinerary}
       />
 
       {/* Modal de Limite */}
@@ -220,7 +227,7 @@ export const ProfileScreen = ({ navigation }: any) => {
       </View>
 
       {/* Botão para ver uso */}
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => navigation.navigate('Usage')}
         style={styles.usageButton}
       >
@@ -230,7 +237,7 @@ export const ProfileScreen = ({ navigation }: any) => {
 
       {/* Botão para upgrade (se não for Pro) */}
       {plan !== 'pro' && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.navigate('Pricing')}
           style={styles.upgradeButton}
         >
@@ -262,7 +269,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       {/* Widget de uso */}
       <View style={styles.usageWidget}>
         <Text style={styles.widgetTitle}>Seu Uso</Text>
-        
+
         <UsageBar
           label="Roteiros"
           current={usage?.itineraries.current || 0}
@@ -273,7 +280,7 @@ export const DashboardScreen = ({ navigation }: any) => {
           onUpgrade={() => navigation.navigate('Pricing')}
         />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.navigate('Usage')}
           style={styles.viewAllButton}
         >
@@ -333,8 +340,9 @@ useUsageWarnings();
 ## 🎯 Fluxo Completo de Upgrade
 
 ### 1. Usuário tenta criar roteiro
+
 ```
-DashboardScreen 
+DashboardScreen
   → Verifica limite com canCreateItinerary()
   → Se atingiu: Mostra LimitModal
   → Usuário clica "Ver Planos"
@@ -342,17 +350,20 @@ DashboardScreen
 ```
 
 ### 2. Escolhe plano e confirma
+
 ```
 PricingScreen
   → Usuário seleciona Premium/Pro
   → Clica "Assinar Premium"
-  → API: POST /api/subscriptions/confirm-upgrade
-  → Sucesso: Mostra alert
-  → Volta para tela anterior
+  → Navega para UpgradeWebviewScreen
+  → API: POST /api/subscriptions/create-checkout
+  → Checkout hospedado (Stripe)
+  → Retorno para app e verificação em /api/checkout/verify/:sessionId
   → Subscription cache é invalidado automaticamente
 ```
 
 ### 3. Dados atualizados
+
 ```
 React Query invalida:
   - ['subscription']
@@ -369,6 +380,7 @@ Componentes re-renderizam com novos limites:
 ## 🧪 Testando Localmente
 
 ### 1. Criar usuário de teste
+
 ```typescript
 // Fazer signup
 const { user, accessToken } = await authService.signup({
@@ -382,6 +394,7 @@ const { user, accessToken } = await authService.signup({
 ```
 
 ### 2. Ver plano atual
+
 ```typescript
 const { data } = useMySubscription();
 console.log(data.subscription.plan); // "free"
@@ -389,6 +402,7 @@ console.log(data.subscription.usage.itineraries); // { current: 0, limit: 3 }
 ```
 
 ### 3. Criar 3 roteiros
+
 ```typescript
 await itineraryService.create({ ... }); // OK
 await itineraryService.create({ ... }); // OK
@@ -397,9 +411,9 @@ await itineraryService.create({ ... }); // ERRO 403!
 ```
 
 ### 4. Fazer upgrade
+
 ```typescript
-const { mutateAsync: upgrade } = useUpgrade();
-await upgrade({ targetPlan: 'premium', billingCycle: 'monthly' });
+navigation.navigate('UpgradeWebview');
 
 // Agora pode criar até 50 roteiros
 ```
@@ -409,11 +423,13 @@ await upgrade({ targetPlan: 'premium', billingCycle: 'monthly' });
 ## 📝 Checklist de Integração
 
 ### Backend
+
 - ✅ Sistema de assinatura implementado
 - ✅ Middlewares de limite aplicados
 - ✅ Endpoints de subscription funcionando
 
 ### Mobile - Básico
+
 - ✅ Tipos criados
 - ✅ Serviço de API criado
 - ✅ Hooks criados
@@ -421,6 +437,7 @@ await upgrade({ targetPlan: 'premium', billingCycle: 'monthly' });
 - ✅ Telas criadas
 
 ### Mobile - Integração
+
 - [ ] Adicionar rotas no navegador (Pricing, Usage)
 - [ ] Integrar LimitModal em telas de criação
 - [ ] Adicionar PlanBadge no ProfileScreen
@@ -428,6 +445,7 @@ await upgrade({ targetPlan: 'premium', billingCycle: 'monthly' });
 - [ ] Testar fluxo completo de upgrade
 
 ### Opcional - UX Avançada
+
 - [ ] Hook de avisos de limite próximo
 - [ ] Animações de transição de plano
 - [ ] Onboarding de trial gratuito
@@ -458,16 +476,19 @@ await upgrade({ targetPlan: 'premium', billingCycle: 'monthly' });
 ## 💡 Dicas
 
 ### Performance
+
 - React Query cacheia por 1 minuto (subscription) e 30s (usage)
 - Use `refetch()` com moderação
 - `invalidateQueries` automático após mutations
 
 ### UX
+
 - Sempre mostre o motivo do bloqueio (limite de X roteiros)
 - Liste benefícios do upgrade no modal
 - Permita usuário continuar navegando (não force upgrade)
 
 ### Debugging
+
 ```typescript
 // Ver subscription atual
 const { data } = useMySubscription();
@@ -487,16 +508,19 @@ refetch();
 ## 📞 Troubleshooting
 
 ### "axios is not defined"
+
 ```bash
 npm install axios
 ```
 
 ### "Cannot find module 'expo-blur'"
+
 ```bash
 npx expo install expo-blur
 ```
 
 ### "Subscription não aparece"
+
 - Verificar se backend está rodando
 - Verificar URL da API em `config/env`
 - Ver console do React Query Devtools

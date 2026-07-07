@@ -82,13 +82,7 @@
           "mode": "production"
         }
       ],
-      "@react-native-firebase/app",
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantId": "merchant.com.guiaaventureiro"
-        }
-      ]
+      "@react-native-firebase/app"
     ],
     "extra": {
       "eas": {
