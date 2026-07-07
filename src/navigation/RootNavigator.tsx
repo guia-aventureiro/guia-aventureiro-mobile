@@ -47,8 +47,6 @@ export const RootNavigator = () => {
   // Tratar deep links e universal links
   useEffect(() => {
     const handleDeepLink = (url: string) => {
-      console.log('Link recebido:', url);
-
       // Tenta extrair shareId de ambos os formatos:
       // 1. Deep link: guiaaventureiro://shared/{shareId}
       // 2. Universal link: https://landing-page-patrickavilas-projects.vercel.app/r/{shareId}
@@ -66,7 +64,6 @@ export const RootNavigator = () => {
       }
 
       if (shareId) {
-        console.log('ShareId extraído:', shareId);
         // Aguarda a navegação estar pronta
         setTimeout(() => {
           navigationRef.current?.navigate('SharedItinerary', { shareId });
@@ -118,7 +115,6 @@ export const RootNavigator = () => {
     <SafeAreaProvider>
       <NavigationContainer
         ref={navigationRef}
-        testID="app-navigation"
         onReady={() => {
           routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
         }}

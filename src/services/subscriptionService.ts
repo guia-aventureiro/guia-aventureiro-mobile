@@ -1,12 +1,6 @@
 // mobile/src/services/subscriptionService.ts
 import api from './api';
-import {
-  Subscription,
-  PlanDetails,
-  UsageInfo,
-  Plan,
-  BillingCycle,
-} from '../types/subscription';
+import { Subscription, PlanDetails, UsageInfo, Plan } from '../types/subscription';
 
 /**
  * Serviço para gerenciar assinaturas
@@ -30,8 +24,8 @@ export const getMySubscription = async (): Promise<{
   const { data } = await api.get(`/subscriptions/my-subscription?_t=${Date.now()}`, {
     headers: {
       'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
-    }
+      Pragma: 'no-cache',
+    },
   });
   return data;
 };
@@ -48,49 +42,8 @@ export const getUsage = async (): Promise<{
   const { data } = await api.get(`/subscriptions/usage?_t=${Date.now()}`, {
     headers: {
       'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
-    }
-  });
-  console.log('📊 getUsage response:', data);
-  return data;
-};
-
-/**
- * Iniciar processo de upgrade
- */
-export const initiateUpgrade = async (
-  targetPlan: Plan,
-  billingCycle: BillingCycle
-): Promise<{
-  message: string;
-  redirectUrl: string;
-  plan: {
-    id: Plan;
-    name: string;
-    price: number;
-    billingCycle: BillingCycle;
-  };
-}> => {
-  const { data } = await api.post('/subscriptions/upgrade', {
-    targetPlan,
-    billingCycle,
-  });
-  return data;
-};
-
-/**
- * Confirmar upgrade (temporário até integrar Stripe)
- */
-export const confirmUpgrade = async (
-  targetPlan: Plan,
-  billingCycle: BillingCycle
-): Promise<{
-  message: string;
-  subscription: Subscription;
-}> => {
-  const { data } = await api.post('/subscriptions/confirm-upgrade', {
-    targetPlan,
-    billingCycle,
+      Pragma: 'no-cache',
+    },
   });
   return data;
 };
@@ -98,7 +51,9 @@ export const confirmUpgrade = async (
 /**
  * Cancelar assinatura
  */
-export const cancelSubscription = async (reason?: string): Promise<{
+export const cancelSubscription = async (
+  reason?: string
+): Promise<{
   message: string;
   subscription: Subscription;
   accessUntil: string;
@@ -108,11 +63,13 @@ export const cancelSubscription = async (reason?: string): Promise<{
 };
 
 /**
- * Reativar assinatura cancelada
+ * Reativar assinatura cancelada.
+ * Pode retornar { checkoutRequired: true } se o período já expirou no Stripe.
  */
 export const reactivateSubscription = async (): Promise<{
   message: string;
-  subscription: Subscription;
+  subscription?: Subscription;
+  checkoutRequired?: boolean;
 }> => {
   const { data } = await api.post('/subscriptions/reactivate');
   return data;
@@ -178,4 +135,3 @@ export const getStripeSubscriptionStatus = async (): Promise<{
   const { data } = await api.get('/subscriptions/stripe-status');
   return data;
 };
-

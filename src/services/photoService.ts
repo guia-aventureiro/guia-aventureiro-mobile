@@ -146,19 +146,11 @@ class PhotoService {
         formData.append('itineraryId', itineraryId);
       }
 
-      console.log('📤 Fazendo upload para:', `${env.apiUrl}/upload`);
-      console.log('📤 URI da foto:', uri);
-      console.log('📤 Nome do arquivo:', filename);
-      console.log('📤 Tipo:', type);
-
       const response = await api.post('/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
-      console.log('📥 Status da resposta:', response.status);
-      console.log('✅ Upload concluído:', response.data);
 
       // Analytics: foto enviada
       await analyticsService.logPhotoUpload(1, 'camera');
@@ -168,12 +160,9 @@ class PhotoService {
       if (error?.response?.status) {
         const errorData = error.response.data || {};
         if (error.response.status === 403 && errorData.error === 'limit_reached') {
-          console.log('ℹ️ Limite de upload atingido:', errorData);
         } else {
-          console.error('❌ Erro do servidor:', errorData);
         }
       }
-      console.error('Erro ao fazer upload:', error);
       throw error; // Lança o erro para ser tratado pelo chamador
     }
   }
@@ -232,7 +221,6 @@ class PhotoService {
         message: 'Foto removida com sucesso.',
       };
     } catch (error) {
-      console.error('Erro ao deletar foto:', error);
       const message = (error as any)?.response?.data?.message;
       return {
         success: false,
