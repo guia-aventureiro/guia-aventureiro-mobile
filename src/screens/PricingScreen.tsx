@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../hooks/useColors';
-import { usePlans, useMySubscription, useUpgrade } from '../hooks/useSubscription';
+import { usePlans, useMySubscription } from '../hooks/useSubscription';
 import { Button } from '../components/Button';
 import { PlanBadge } from '../components/PlanBadge';
 import { Plan, BillingCycle, PlanDetails } from '../types/subscription';
@@ -32,8 +32,6 @@ export const PricingScreen = ({ navigation }: any) => {
     isLoading: loadingSub,
     refetch: refetchSubscription,
   } = useMySubscription();
-  const upgradeMutation = useUpgrade();
-
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -114,31 +112,10 @@ export const PricingScreen = ({ navigation }: any) => {
       return;
     }
 
-    // Não permitir downgrade direto (deve cancelar e esperar expirar)
-    const planHierarchy = { free: 0, premium: 1 };
-    if (planHierarchy[targetPlan] < planHierarchy[currentPlan]) {
-      showAlert(
-        'Downgrade não permitido',
-        'Para fazer downgrade, cancele sua assinatura atual e aguarde o fim do período pago.'
-      );
-      return;
-    }
-
-    try {
-      await upgradeMutation.mutateAsync({
-        targetPlan,
-        billingCycle,
-      });
-
-      showAlert('Sucesso!', `Upgrade para ${targetPlan} realizado com sucesso!`, [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
-    } catch (error: any) {
-      showAlert('Erro', error.response?.data?.message || 'Erro ao fazer upgrade. Tente novamente.');
-    }
+    showAlert(
+      'Plano indisponível',
+      'Neste momento, apenas o upgrade para Premium está disponível pelo checkout seguro.'
+    );
   };
 
   const renderPlanCard = (plan: PlanDetails) => {
@@ -214,8 +191,8 @@ export const PricingScreen = ({ navigation }: any) => {
         <Button
           title={isCurrentPlan ? 'Plano Atual' : plan.cta}
           onPress={() => handleUpgrade(plan.id)}
-          disabled={isCurrentPlan || upgradeMutation.isPending || checkoutLoading}
-          loading={upgradeMutation.isPending || checkoutLoading}
+          disabled={isCurrentPlan || checkoutLoading}
+          loading={checkoutLoading}
           variant={plan.popular ? 'primary' : 'outline'}
         />
       </View>

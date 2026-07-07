@@ -4,11 +4,9 @@ import {
   getPlans,
   getMySubscription,
   getUsage,
-  confirmUpgrade,
   cancelSubscription,
   reactivateSubscription,
 } from '../services/subscriptionService';
-import { Plan, BillingCycle } from '../types/subscription';
 
 /**
  * Hook para listar todos os planos
@@ -46,23 +44,6 @@ export const useUsage = () => {
     gcTime: 0, // Não manter em cache
     refetchOnMount: 'always', // Sempre refetch ao montar
     refetchOnWindowFocus: true, // Refetch ao voltar para o app
-  });
-};
-
-/**
- * Hook para fazer upgrade
- */
-export const useUpgrade = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ targetPlan, billingCycle }: { targetPlan: Plan; billingCycle: BillingCycle }) =>
-      confirmUpgrade(targetPlan, billingCycle),
-    onSuccess: () => {
-      // Invalidar queries para atualizar dados
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      queryClient.invalidateQueries({ queryKey: ['usage'] });
-    },
   });
 };
 

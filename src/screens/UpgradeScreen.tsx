@@ -1,19 +1,7 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import { CardField, useConfirmSetupIntent } from '@stripe/stripe-react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useColors } from '../hooks/useColors';
-import { useUser } from '../contexts/UserContext';
-import api from '../services/api';
-import { showAlert } from '../components/CustomAlert';
 
 interface BenefitItemProps {
   icon: string;
@@ -32,96 +20,22 @@ const BenefitItem: React.FC<BenefitItemProps> = ({ icon, text, iconColor, textCo
 export default function UpgradeScreen() {
   const colors = useColors();
   const navigation = useNavigation();
-  const { refreshUser } = useUser();
-  const [loading, setLoading] = useState(false);
-  const [cardComplete, setCardComplete] = useState(false);
-  const { confirmSetupIntent } = useConfirmSetupIntent();
 
-  const handleUpgrade = async () => {
-    if (!cardComplete) {
-      showAlert('Atenção', 'Por favor, preencha os dados do cartão.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // PASSO 1: Criar SetupIntent no backend
-      console.log('🔄 Criando SetupIntent...');
-      const { data: setupData } = await api.post('/subscriptions/create-setup-intent');
-      const { clientSecret } = setupData;
-
-      // PASSO 2: Confirmar cartão com Stripe SDK
-      console.log('💳 Processando cartão com Stripe...');
-      const { setupIntent, error } = await confirmSetupIntent(clientSecret, {
-        paymentMethodType: 'Card',
-      });
-
-      if (error) {
-        showAlert('Não foi possível processar', error.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!setupIntent?.paymentMethodId) {
-        showAlert(
-          'Não foi possível processar',
-          'Não conseguimos confirmar o pagamento agora. Tente novamente.'
-        );
-        setLoading(false);
-        return;
-      }
-
-      // PASSO 3: Criar subscription no backend
-      const { data: subscriptionData } = await api.post('/subscriptions/confirm-payment', {
-        paymentMethodId: setupIntent.paymentMethodId,
-      });
-
-      // PASSO 4: Recarregar dados do usuário
-      await refreshUser();
-
-      // PASSO 5: Mostrar sucesso e voltar
-      setLoading(false);
-      showAlert(
-        '🎉 Bem-vindo ao Premium!',
-        'Seu pagamento foi confirmado com sucesso. Aproveite todos os benefícios Premium!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
-    } catch (error: any) {
-      console.error('❌ Erro no upgrade:', error);
-      setLoading(false);
-
-      const errorMessage = error.response?.data?.message || error.message || 'Erro desconhecido';
-
-      if (error.response?.data?.error === 'already_premium') {
-        showAlert('Tudo certo', 'Você já possui um plano Premium ativo.');
-      } else {
-        showAlert(
-          'Não foi possível concluir',
-          `Não conseguimos processar o pagamento agora. Detalhe: ${errorMessage}`
-        );
-      }
-    }
+  const handleContinue = () => {
+    navigation.navigate('UpgradeWebview' as never);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.success }]}>
-          <Text style={styles.title}>💎 Premium</Text>
+          <Text style={styles.title}>Premium</Text>
           <View style={styles.priceBox}>
             <Text style={[styles.price, { color: colors.white }]}>R$ 19,90</Text>
             <Text style={styles.period}>por mês</Text>
           </View>
         </View>
 
-        {/* Benefícios */}
         <View style={[styles.benefitsBox, { backgroundColor: colors.card }]}>
           <Text style={[styles.benefitTitle, { color: colors.text }]}>O que você ganha:</Text>
           <BenefitItem
@@ -156,55 +70,19 @@ export default function UpgradeScreen() {
           />
         </View>
 
-        {/* Campo de Cartão */}
-        <View style={styles.cardSection}>
-          <Text style={[styles.cardLabel, { color: colors.text }]}>Dados do Cartão</Text>
-          <CardField
-            postalCodeEnabled={false}
-            placeholders={{
-              number: '4242 4242 4242 4242',
-            }}
-            cardStyle={{
-              backgroundColor: colors.card,
-              textColor: colors.text,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 8,
-            }}
-            style={styles.cardField}
-            onCardChange={(cardDetails) => {
-              setCardComplete(cardDetails.complete);
-            }}
-          />
-        </View>
-
-        {/* Botão de Assinatura */}
         <TouchableOpacity
-          style={[
-            styles.button,
-            { backgroundColor: colors.success },
-            (loading || !cardComplete) && [
-              styles.buttonDisabled,
-              { backgroundColor: colors.textLight },
-            ],
-          ]}
-          onPress={handleUpgrade}
-          disabled={loading || !cardComplete}
+          style={[styles.button, { backgroundColor: colors.success }]}
+          onPress={handleContinue}
         >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={colors.white} size="small" />
-              <Text style={[styles.buttonText, { color: colors.white }]}> Processando...</Text>
-            </View>
-          ) : (
-            <Text style={[styles.buttonText, { color: colors.white }]}>Assinar Premium</Text>
-          )}
+          <Text style={[styles.buttonText, { color: colors.white }]}>
+            Ir para o checkout seguro
+          </Text>
         </TouchableOpacity>
 
-        {/* Informações */}
         <Text style={[styles.disclaimer, { color: colors.textLight }]}>
-          ✓ Cancele a qualquer momento{'\n'}✓ Sem taxas de cancelamento{'\n'}✓ Pagamento seguro via
-          Stripe
+          {
+            '✓ Cancele a qualquer momento\n✓ Sem taxas de cancelamento\n✓ Pagamento seguro via checkout hospedado'
+          }
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -214,7 +92,6 @@ export default function UpgradeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
   },
   container: {
     flex: 1,
@@ -278,21 +155,6 @@ const styles = StyleSheet.create({
     color: '#666',
     flex: 1,
   },
-  cardSection: {
-    margin: 20,
-    marginTop: 0,
-  },
-  cardLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#333',
-  },
-  cardField: {
-    width: '100%',
-    height: 50,
-    marginBottom: 20,
-  },
   button: {
     backgroundColor: '#4CAF50',
     marginHorizontal: 20,
@@ -306,17 +168,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  buttonDisabled: {
-    backgroundColor: '#CCCCCC',
-  },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   disclaimer: {
     fontSize: 14,

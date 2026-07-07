@@ -108,7 +108,21 @@ export const UsageScreen = ({ navigation }: any) => {
 
   const handleReactivate = async () => {
     try {
-      await reactivateMutation.mutateAsync();
+      const result = await reactivateMutation.mutateAsync();
+
+      // Backend sinalizou que a assinatura expirou no Stripe → precisa de novo checkout
+      if ((result as any)?.checkoutRequired) {
+        showAlert(
+          'Assinatura expirada',
+          'Sua assinatura expirou. Para assinar novamente, vá para a tela de planos.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Ver planos', onPress: () => navigation.navigate('Pricing' as never) },
+          ]
+        );
+        return;
+      }
+
       showAlert('Sucesso', 'Assinatura reativada com sucesso!');
     } catch (error: any) {
       showAlert('Erro', error.response?.data?.message || 'Erro ao reativar assinatura.');

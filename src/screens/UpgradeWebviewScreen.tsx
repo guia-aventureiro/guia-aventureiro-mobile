@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useColors } from '../hooks/useColors';
 import { useUser } from '../contexts/UserContext';
 import api from '../services/api';
+import { createCheckoutSession as createSubscriptionCheckoutSession } from '../services/subscriptionService';
 import { showAlert } from '../components/CustomAlert';
 
 export default function UpgradeWebviewScreen() {
@@ -36,16 +37,10 @@ export default function UpgradeWebviewScreen() {
       setLoading(true);
       setError(null);
 
-      const { data } = await api.post('/checkout/create-session');
+      const { url } = await createSubscriptionCheckoutSession();
 
-      if (data.successUrl && data.successUrl.includes('localhost')) {
-        throw new Error(
-          'Backend retornou successUrl com localhost. Gere novo tunnel (localtunnel/ngrok) e tente novamente.'
-        );
-      }
-
-      if (data.url) {
-        setCheckoutUrl(data.url);
+      if (url) {
+        setCheckoutUrl(url);
       } else {
         throw new Error('URL de checkout não recebida');
       }
@@ -157,7 +152,11 @@ export default function UpgradeWebviewScreen() {
 
   const processUrl = async (url: string) => {
     // Fallback: detectar sucesso pela URL caso postMessage não funcione
-    if (url.includes('/checkout/success') || url.includes('/payment/success')) {
+    if (
+      url.includes('/api/checkout/success') ||
+      url.includes('/checkout/success') ||
+      url.includes('/payment/success')
+    ) {
       const sessionIdMatch = url.match(/session_id=([^&]+)/);
       const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
 
@@ -167,7 +166,11 @@ export default function UpgradeWebviewScreen() {
     }
 
     // Detectar cancelamento pela URL
-    if (url.includes('/checkout/cancel') || url.includes('/payment/cancel')) {
+    if (
+      url.includes('/api/checkout/cancel') ||
+      url.includes('/checkout/cancel') ||
+      url.includes('/payment/cancel')
+    ) {
       handlePaymentCancel();
     }
   };
@@ -182,6 +185,8 @@ export default function UpgradeWebviewScreen() {
     }
 
     if (
+      url.includes('/api/checkout/success') ||
+      url.includes('/api/checkout/cancel') ||
       url.includes('/checkout/success') ||
       url.includes('/checkout/cancel') ||
       url.includes('/payment/success') ||
