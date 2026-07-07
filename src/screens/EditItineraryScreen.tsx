@@ -328,7 +328,7 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
       >
         <ScrollView
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           removeClippedSubviews={false}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
