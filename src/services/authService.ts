@@ -1,17 +1,15 @@
 // mobile/src/services/authService.ts
 import api from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { deleteSecureItem, getSecureItem, setSecureItem } from '../platform/storage';
 import { User } from '../types';
 import analyticsService from './analyticsService';
 
 // Helper to store tokens securely
 const storeTokensSecurely = async (accessToken: string, refreshToken: string) => {
   try {
-    await SecureStore.setItemAsync('accessToken', accessToken);
-    await SecureStore.setItemAsync('refreshToken', refreshToken);
-    // Clear from AsyncStorage for security
-    await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+    await setSecureItem('accessToken', accessToken);
+    await setSecureItem('refreshToken', refreshToken);
   } catch (error) {
     if (__DEV__) {
       console.error('❌ Error storing tokens securely');
@@ -25,29 +23,10 @@ const loadTokensSecurely = async (): Promise<{
   refreshToken: string | null;
 }> => {
   try {
-    const accessToken = await SecureStore.getItemAsync('accessToken');
-    const refreshToken = await SecureStore.getItemAsync('refreshToken');
-
-    // Fallback: check AsyncStorage for migration
-    if (!accessToken) {
-      const asyncAccessToken = await AsyncStorage.getItem('accessToken');
-      if (asyncAccessToken) {
-        await SecureStore.setItemAsync('accessToken', asyncAccessToken);
-        await AsyncStorage.removeItem('accessToken');
-      }
-    }
-
-    if (!refreshToken) {
-      const asyncRefreshToken = await AsyncStorage.getItem('refreshToken');
-      if (asyncRefreshToken) {
-        await SecureStore.setItemAsync('refreshToken', asyncRefreshToken);
-        await AsyncStorage.removeItem('refreshToken');
-      }
-    }
-
+    // platform/storage já cuida da migração de AsyncStorage no nativo
     return {
-      accessToken: await SecureStore.getItemAsync('accessToken'),
-      refreshToken: await SecureStore.getItemAsync('refreshToken'),
+      accessToken: await getSecureItem('accessToken'),
+      refreshToken: await getSecureItem('refreshToken'),
     };
   } catch (error) {
     if (__DEV__) {
@@ -108,10 +87,10 @@ export const authService = {
     } catch (error) {
       // Ignorar erro no logout do servidor
     } finally {
-      // Remove tokens from secure store
+      // Remove tokens from platform storage
       try {
-        await SecureStore.deleteItemAsync('accessToken');
-        await SecureStore.deleteItemAsync('refreshToken');
+        await deleteSecureItem('accessToken');
+        await deleteSecureItem('refreshToken');
       } catch (e) {
         // Ignore errors during cleanup
       }
@@ -139,8 +118,8 @@ export const authService = {
   async deleteAccount() {
     await api.delete('/auth/account');
     try {
-      await SecureStore.deleteItemAsync('accessToken');
-      await SecureStore.deleteItemAsync('refreshToken');
+      await deleteSecureItem('accessToken');
+      await deleteSecureItem('refreshToken');
     } catch (e) {
       // Ignore cleanup errors
     }

@@ -1,7 +1,7 @@
 // mobile/src/services/api.ts
 import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { deleteSecureItem, getSecureItem, setSecureItem } from '../platform/storage';
 import ENV from '../config/env';
 
 // EventEmitter simples para comunicar eventos de autenticação (React Native compatível)
@@ -57,61 +57,12 @@ if (!__DEV__ && ENV.apiUrl && !ENV.apiUrl.startsWith('https://')) {
   }
 }
 
-// Secure token storage helper
-const getSecureToken = async (key: string): Promise<string | null> => {
-  try {
-    // Try secure store first (new way)
-    const secureToken = normalizeTokenValue(await SecureStore.getItemAsync(key));
-    if (secureToken) {
-      return secureToken;
-    }
+// Secure token storage helpers (delegam para platform/storage — web usa localStorage)
+const getSecureToken = (key: string): Promise<string | null> => getSecureItem(key);
 
-    // Fallback to AsyncStorage for migration (old way) - but don't use beyond migration
-    const asyncToken = normalizeTokenValue(await AsyncStorage.getItem(key));
-    if (asyncToken && secureToken === null) {
-      // Migrate to secure store
-      await SecureStore.setItemAsync(key, asyncToken);
-      // Don't delete from AsyncStorage immediately - let it expire naturally
-    }
+const setSecureToken = (key: string, value: string): Promise<void> => setSecureItem(key, value);
 
-    return asyncToken;
-  } catch (error) {
-    if (__DEV__) {
-      console.error('❌ Error accessing secure store');
-    }
-    return null;
-  }
-};
-
-const setSecureToken = async (key: string, value: string): Promise<void> => {
-  try {
-    const sanitizedValue = normalizeTokenValue(value);
-    if (!sanitizedValue) {
-      await removeSecureToken(key);
-      return;
-    }
-
-    // Store in secure store
-    await SecureStore.setItemAsync(key, sanitizedValue);
-    // Also clear from AsyncStorage for security
-    await AsyncStorage.removeItem(key);
-  } catch (error) {
-    if (__DEV__) {
-      console.error('❌ Error storing secure token');
-    }
-  }
-};
-
-const removeSecureToken = async (key: string): Promise<void> => {
-  try {
-    await SecureStore.deleteItemAsync(key);
-    await AsyncStorage.removeItem(key);
-  } catch (error) {
-    if (__DEV__) {
-      console.error('❌ Error removing secure token');
-    }
-  }
-};
+const removeSecureToken = (key: string): Promise<void> => deleteSecureItem(key);
 
 // Interceptor para adicionar token
 api.interceptors.request.use(
