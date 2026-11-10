@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +35,10 @@ export const LimitModal: React.FC<LimitModalProps> = ({
   currentPlan,
 }) => {
   const colors = useColors();
+
+  // expo-blur não tem efeito no web; usa overlay escuro simples
+  const Backdrop = Platform.OS === 'web' ? View : BlurView;
+  const backdropProps = Platform.OS === 'web' ? {} : { intensity: 80 };
 
   const getResourceIcon = () => {
     if (limitError.message.includes('roteiro')) return 'map';
@@ -115,7 +120,13 @@ export const LimitModal: React.FC<LimitModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <BlurView intensity={80} style={styles.backdrop}>
+      <Backdrop
+        {...backdropProps}
+        style={[
+          styles.backdrop,
+          Platform.OS === 'web' && { backgroundColor: 'rgba(17, 24, 39, 0.55)' },
+        ]}
+      >
         <TouchableOpacity style={styles.backdropTouchable} activeOpacity={1} onPress={onClose} />
         <View style={[styles.container, { backgroundColor: colors.card }]}>
           <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
@@ -185,7 +196,7 @@ export const LimitModal: React.FC<LimitModalProps> = ({
             </View>
           </ScrollView>
         </View>
-      </BlurView>
+      </Backdrop>
     </Modal>
   );
 };

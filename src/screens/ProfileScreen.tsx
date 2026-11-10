@@ -373,6 +373,15 @@ export const ProfileScreen = ({ navigation }: any) => {
   const shareProfileLink = async () => {
     const profileUrl = `${apiUrl}/profile/${user?._id}`;
     try {
+      if (Platform.OS === 'web') {
+        const text = `Confira meu perfil de viagens! ${profileUrl}`;
+        if (typeof navigator !== 'undefined' && (navigator as any).share) {
+          await (navigator as any).share({ title: 'Guia do Aventureiro', text, url: profileUrl });
+        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          await navigator.clipboard.writeText(text);
+        }
+        return;
+      }
       await Share.share({
         message: `Confira meu perfil de viagens! ${profileUrl}`,
         url: profileUrl,

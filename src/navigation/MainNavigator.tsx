@@ -16,11 +16,11 @@ import { EditItineraryScreen } from '../screens/EditItineraryScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { RecommendationsScreen } from '../screens/RecommendationsScreen';
 import { BudgetScreen } from '../screens/BudgetScreen';
-import { MapScreen } from '../screens/MapScreen';
+import { MapScreen } from '../platform/MapScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 import { PricingScreen } from '../screens/PricingScreen';
 import { UsageScreen } from '../screens/UsageScreen';
-import UpgradeWebviewScreen from '../screens/UpgradeWebviewScreen';
+import UpgradeWebviewScreen from '../platform/UpgradeCheckout';
 import { useNotifications } from '../hooks/useNotifications';
 
 const Tab = createBottomTabNavigator();

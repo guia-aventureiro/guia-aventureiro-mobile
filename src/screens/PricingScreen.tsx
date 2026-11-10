@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -81,12 +82,16 @@ export const PricingScreen = ({ navigation }: any) => {
       // Obter URL do Customer Portal
       const { url } = await subscriptionService.getCustomerPortalUrl();
 
-      // Abrir Customer Portal
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
+      // Abrir Customer Portal (web: nova aba do navegador)
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank', 'noopener,noreferrer');
       } else {
-        throw new Error('Não foi possível abrir o navegador');
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          throw new Error('Não foi possível abrir o navegador');
+        }
       }
     } catch (error: any) {
       console.error('Erro ao abrir portal:', error);

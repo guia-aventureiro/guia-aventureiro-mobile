@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColors } from '../hooks/useColors';
 import { Toast } from '../components/Toast';
 import { useToast } from '../hooks/useToast';
-import pushNotificationService, { NotificationSettings } from '../services/pushNotificationService';
+import pushNotificationService, { NotificationSettings } from '../platform/pushNotifications';
 import { showAlert } from '../components/CustomAlert';
 
 export const NotificationSettingsScreen = ({ navigation }: any) => {

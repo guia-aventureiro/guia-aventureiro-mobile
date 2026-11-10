@@ -16,7 +16,7 @@ import { itineraryService } from '../services/itineraryService';
 import { Itinerary } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { DateInput } from '../components/DateInput';
+import { DateInput } from '../platform/DateInput';
 import { PlaceAutocomplete } from '../components/PlaceAutocomplete';
 import { Toast } from '../components/Toast';
 import { useToast } from '../hooks/useToast';

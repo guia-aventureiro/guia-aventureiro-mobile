@@ -31,6 +31,40 @@ interface ShareModalProps {
   onSuccess?: (message: string) => void;
 }
 
+// Helpers cross-plataforma: no web usamos as APIs do navegador
+const copyToClipboard = async (text: string): Promise<void> => {
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  await Clipboard.setStringAsync(text);
+};
+
+const shareContent = async (payload: { message: string; title?: string; url?: string }) => {
+  if (Platform.OS === 'web') {
+    if (typeof navigator !== 'undefined' && (navigator as any).share) {
+      await (navigator as any).share({
+        title: payload.title,
+        text: payload.message,
+        url: payload.url,
+      });
+      return;
+    }
+    // Sem Web Share API: copia o link como fallback
+    await copyToClipboard(payload.url || payload.message);
+    return;
+  }
+  await Share.share(payload);
+};
+
+const openExternalUrl = async (url: string): Promise<void> => {
+  if (Platform.OS === 'web') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  await Linking.openURL(url);
+};
+
 export const ShareModal: React.FC<ShareModalProps> = ({
   visible,
   onClose,
@@ -127,7 +161,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       return;
     }
 
-    await Clipboard.setStringAsync(shareLink);
+    await copyToClipboard(shareLink);
     if (isMounted.current) {
       success('Link copiado!');
     }
@@ -140,7 +174,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
 
     try {
-      await Share.share({
+      await shareContent({
         message: `Confira meu roteiro de viagem: ${itineraryTitle}\n\n${shareLink}`,
         title: itineraryTitle,
         url: shareLink,
@@ -184,12 +218,15 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
     // Tenta abrir WhatsApp diretamente
     try {
-      const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
-      await Linking.openURL(whatsappUrl);
+      const whatsappUrl =
+        Platform.OS === 'web'
+          ? `https://wa.me/?text=${encodeURIComponent(message)}`
+          : `whatsapp://send?text=${encodeURIComponent(message)}`;
+      await openExternalUrl(whatsappUrl);
     } catch (error) {
-      // Fallback: usa Share nativo
+      // Fallback: compartilhamento nativo ou clipboard
       try {
-        await Share.share({
+        await shareContent({
           message: message,
           title: itineraryTitle,
         });
