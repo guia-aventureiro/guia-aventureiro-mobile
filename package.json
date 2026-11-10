@@ -11,7 +11,8 @@
     "build:android:aab:dry": "powershell -ExecutionPolicy Bypass -File ./scripts/eas-build-android.ps1 -DryRun",
     "build:android:apk": "powershell -ExecutionPolicy Bypass -File ./scripts/eas-build-android.ps1 -Profile development",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:web": "cross-env EXPO_PUBLIC_APP_ENV=production expo export --platform web"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

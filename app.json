@@ -8,7 +8,7 @@
     "scheme": "guiaaventureiro",
     "userInterfaceStyle": "automatic",
     "description": "Planeje suas viagens com Inteligência Artificial. Roteiros personalizados, controle de orçamento e muito mais!",
-    "platforms": ["ios", "android"],
+    "platforms": ["ios", "android", "web"],
     "primaryColor": "#005A8D",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -64,7 +64,14 @@
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/icon.png",
+      "output": "single",
+      "name": "Guia do Aventureiro",
+      "shortName": "Guia Aventureiro",
+      "description": "Planeje suas viagens com Inteligência Artificial. Roteiros personalizados, controle de orçamento e muito mais!",
+      "backgroundColor": "#005A8D",
+      "themeColor": "#005A8D",
+      "lang": "pt-BR"
     },
     "plugins": [
       [
