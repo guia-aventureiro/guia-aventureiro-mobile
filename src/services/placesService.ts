@@ -24,6 +24,26 @@ export interface PlaceDetails {
   photoUrl?: string;
 }
 
+// Lista compartilhada entre sugestões e detalhes mockados.
+// IDs estáveis (mock_<cidade>) garantem que o detalhe resolva a cidade certa.
+const MOCK_PLACES = [
+  { city: 'Paris', country: 'França', latitude: 48.8566, longitude: 2.3522 },
+  { city: 'Londres', country: 'Reino Unido', latitude: 51.5074, longitude: -0.1278 },
+  { city: 'Roma', country: 'Itália', latitude: 41.9028, longitude: 12.4964 },
+  { city: 'Barcelona', country: 'Espanha', latitude: 41.3874, longitude: 2.1686 },
+  { city: 'Amsterdã', country: 'Holanda', latitude: 52.3676, longitude: 4.9041 },
+  { city: 'Tóquio', country: 'Japão', latitude: 35.6762, longitude: 139.6503 },
+  { city: 'Nova York', country: 'Estados Unidos', latitude: 40.7128, longitude: -74.006 },
+  { city: 'Rio de Janeiro', country: 'Brasil', latitude: -22.9068, longitude: -43.1729 },
+  { city: 'São Paulo', country: 'Brasil', latitude: -23.5505, longitude: -46.6333 },
+  { city: 'Buenos Aires', country: 'Argentina', latitude: -34.6037, longitude: -58.3816 },
+  { city: 'Lisboa', country: 'Portugal', latitude: 38.7223, longitude: -9.1393 },
+  { city: 'Dubai', country: 'Emirados Árabes', latitude: 25.2048, longitude: 55.2708 },
+  { city: 'Bangkok', country: 'Tailândia', latitude: 13.7563, longitude: 100.5018 },
+  { city: 'Cancún', country: 'México', latitude: 21.1619, longitude: -86.8515 },
+  { city: 'Praga', country: 'República Tcheca', latitude: 50.0755, longitude: 14.4378 },
+];
+
 class PlacesService {
   /**
    * Busca sugestões de lugares baseado no texto digitado
@@ -70,6 +90,11 @@ class PlacesService {
    * Obtém detalhes de um lugar específico
    */
   async getPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
+    // Sugestões mockadas nunca vão para a API real
+    if (placeId.startsWith('mock_')) {
+      return this.getMockPlaceDetails(placeId);
+    }
+
     if (!GOOGLE_PLACES_API_KEY) {
       return this.getMockPlaceDetails(placeId);
     }
@@ -127,32 +152,14 @@ class PlacesService {
    * Sugestões mockadas para desenvolvimento (sem API key)
    */
   private getMockSuggestions(input: string): PlaceSuggestion[] {
-    const mockPlaces = [
-      { city: 'Paris', country: 'França' },
-      { city: 'Londres', country: 'Reino Unido' },
-      { city: 'Roma', country: 'Itália' },
-      { city: 'Barcelona', country: 'Espanha' },
-      { city: 'Amsterdã', country: 'Holanda' },
-      { city: 'Tóquio', country: 'Japão' },
-      { city: 'Nova York', country: 'Estados Unidos' },
-      { city: 'Rio de Janeiro', country: 'Brasil' },
-      { city: 'São Paulo', country: 'Brasil' },
-      { city: 'Buenos Aires', country: 'Argentina' },
-      { city: 'Lisboa', country: 'Portugal' },
-      { city: 'Dubai', country: 'Emirados Árabes' },
-      { city: 'Bangkok', country: 'Tailândia' },
-      { city: 'Cancún', country: 'México' },
-      { city: 'Praga', country: 'República Tcheca' },
-    ];
-
-    const filtered = mockPlaces.filter(
+    const filtered = MOCK_PLACES.filter(
       (place) =>
         place.city.toLowerCase().includes(input.toLowerCase()) ||
         place.country.toLowerCase().includes(input.toLowerCase())
     );
 
-    return filtered.map((place, index) => ({
-      placeId: `mock_${index}`,
+    return filtered.map((place) => ({
+      placeId: `mock_${place.city}`,
       description: `${place.city}, ${place.country}`,
       mainText: place.city,
       secondaryText: place.country,
@@ -163,43 +170,28 @@ class PlacesService {
    * Detalhes mockados para desenvolvimento
    */
   private getMockPlaceDetails(placeId: string): PlaceDetails {
-    const mockDetails: Record<string, PlaceDetails> = {
-      mock_0: {
-        name: 'Paris',
-        city: 'Paris',
-        country: 'França',
-        formattedAddress: 'Paris, França',
-        latitude: 48.8566,
-        longitude: 2.3522,
-      },
-      mock_1: {
-        name: 'Londres',
-        city: 'Londres',
-        country: 'Reino Unido',
-        formattedAddress: 'Londres, Reino Unido',
-        latitude: 51.5074,
-        longitude: -0.1278,
-      },
-      mock_7: {
-        name: 'Rio de Janeiro',
-        city: 'Rio de Janeiro',
-        country: 'Brasil',
-        formattedAddress: 'Rio de Janeiro - RJ, Brasil',
-        latitude: -22.9068,
-        longitude: -43.1729,
-      },
-    };
+    const cityName = placeId.replace(/^mock_/, '');
+    const match = MOCK_PLACES.find((place) => place.city === cityName);
 
-    return (
-      mockDetails[placeId] || {
+    if (!match) {
+      return {
         name: 'Destino Desconhecido',
         city: 'Cidade',
         country: 'País',
         formattedAddress: 'Endereço desconhecido',
         latitude: 0,
         longitude: 0,
-      }
-    );
+      };
+    }
+
+    return {
+      name: match.city,
+      city: match.city,
+      country: match.country,
+      formattedAddress: `${match.city}, ${match.country}`,
+      latitude: match.latitude,
+      longitude: match.longitude,
+    };
   }
 }
 

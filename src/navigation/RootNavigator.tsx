@@ -22,8 +22,11 @@ export const RootNavigator = () => {
   const { user, isLoading, isTransitioning } = useAuth();
   const { refreshUser } = useUser();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const [pendingShareId, setPendingShareId] = useState<string | null>(null);
+  const pendingShareIdRef = useRef<string | null>(null);
   const navigationRef = useRef<any>(null);
   const routeNameRef = useRef<string | undefined>(undefined);
+  const navigationReadyRef = useRef(false);
 
   useEffect(() => {
     checkOnboarding();
@@ -61,30 +64,58 @@ export const RootNavigator = () => {
         /https?:\/\/(share\.guiaaventureiro\.app|landing-page.*\.vercel\.app)\/r\/([a-f0-9-]+)/i
       );
 
+      // Web: aceita /r/:shareId no próprio domínio do app web
+      const webPathMatch =
+        Platform.OS === 'web' && typeof window !== 'undefined'
+          ? url.match(/\/r\/([a-f0-9-]+)/i)
+          : null;
+
       if (deepLinkMatch && deepLinkMatch[1]) {
         shareId = deepLinkMatch[1];
       } else if (universalLinkMatch && universalLinkMatch[2]) {
         shareId = universalLinkMatch[2];
+      } else if (webPathMatch && webPathMatch[1]) {
+        shareId = webPathMatch[1];
       }
 
       if (shareId) {
-        // Aguarda a navegação estar pronta
-        setTimeout(() => {
-          navigationRef.current?.navigate('SharedItinerary', { shareId });
-        }, 100);
+        // Link compartilhado tem prioridade: marca como pendente para não
+        // deixar o onboarding bloquear o NavigationContainer
+        pendingShareIdRef.current = shareId;
+        setPendingShareId(shareId);
+        setShowOnboarding(false);
+
+        // Aguarda a navegação estar pronta (retry por até ~2s; no web o
+        // container pode demorar mais que 100ms para montar)
+        let attempts = 0;
+        const tryNavigate = () => {
+          if (navigationRef.current && navigationReadyRef.current) {
+            navigationRef.current.navigate('SharedItinerary', { shareId });
+          } else if (attempts < 20) {
+            attempts += 1;
+            setTimeout(tryNavigate, 100);
+          }
+        };
+        tryNavigate();
       }
     };
 
     // Captura link inicial (quando app foi aberto via deep link)
-    Linking.getInitialURL()
-      .then((url) => {
-        if (url) {
-          handleDeepLink(url);
-        }
-      })
-      .catch((error) => {
-        console.error('Erro ao obter Initial URL para deep link:', error);
-      });
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // No web, a URL inicial vem direto do navegador — Linking.getInitialURL
+      // não é confiável nessa plataforma
+      handleDeepLink(window.location.href);
+    } else {
+      Linking.getInitialURL()
+        .then((url) => {
+          if (url) {
+            handleDeepLink(url);
+          }
+        })
+        .catch((error) => {
+          console.error('Erro ao obter Initial URL para deep link:', error);
+        });
+    }
 
     // Listener para links recebidos enquanto app está aberto
     const subscription = Linking.addEventListener('url', (event) => {
@@ -141,7 +172,10 @@ export const RootNavigator = () => {
   const checkOnboarding = async () => {
     try {
       const skipOnboarding = await AsyncStorage.getItem('@guia_aventureiro:skip_onboarding');
-      setShowOnboarding(!skipOnboarding);
+      // Se há um link compartilhado pendente, não bloquear com o onboarding
+      if (!pendingShareIdRef.current) {
+        setShowOnboarding(!skipOnboarding);
+      }
     } catch (error) {
       console.error('Erro ao verificar onboarding:', error);
       setShowOnboarding(true); // Mostrar por padrão em caso de erro
@@ -153,7 +187,8 @@ export const RootNavigator = () => {
   }
 
   // Se não tem usuário e nunca viu o onboarding, mostrar
-  if (!user && showOnboarding) {
+  // (exceto quando há um link compartilhado pendente — conteúdo primeiro)
+  if (!user && showOnboarding && !pendingShareId) {
     return <OnboardingScreen onComplete={() => setShowOnboarding(false)} />;
   }
 
@@ -162,6 +197,7 @@ export const RootNavigator = () => {
       <NavigationContainer
         ref={navigationRef}
         onReady={() => {
+          navigationReadyRef.current = true;
           routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
         }}
         onStateChange={() => {

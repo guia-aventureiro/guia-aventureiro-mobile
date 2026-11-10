@@ -186,13 +186,16 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
         </View>
 
         {/* Dias do roteiro */}
-        {itinerary.days?.map((day: any) => (
+        {itinerary.days?.map((day: any, dayIndex: number) => {
+          // Payload público pode vir com day.day ou day.dayNumber conforme a origem
+          const dayNumber = day.day ?? day.dayNumber ?? dayIndex + 1;
+          return (
           <View
-            key={`day-${day.day}`}
+            key={`day-${dayNumber}`}
             style={[styles.dayCard, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <Text style={[styles.dayTitle, { color: colors.primary }]}>
-              Dia {day.day} - {day.title}
+              Dia {dayNumber} - {day.title}
             </Text>
             {day.description && (
               <Text style={[styles.dayDescription, { color: colors.textSecondary }]}>
@@ -200,7 +203,7 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
               </Text>
             )}
             {day.activities?.map((activity: any, actIndex: number) => (
-              <View key={`activity-${day.day}-${actIndex}`} style={[styles.activity, { borderTopColor: colors.border }]}>
+              <View key={`activity-${dayNumber}-${actIndex}`} style={[styles.activity, { borderTopColor: colors.border }]}>
                 <Text style={[styles.activityTime, { color: colors.primary }]}>
                   {activity.time}
                 </Text>
@@ -215,7 +218,8 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
               </View>
             ))}
           </View>
-        ))}
+          );
+        })}
 
         {/* Botão de copiar */}
         <View style={styles.actionContainer}>
