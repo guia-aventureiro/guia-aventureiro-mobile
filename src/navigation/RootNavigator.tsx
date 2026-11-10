@@ -3,20 +3,24 @@ import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { SplashScreen } from '../components/SplashScreen';
 import { SharedItineraryScreen } from '../screens/SharedItineraryScreen';
+import { showAlert } from '../components/CustomAlert';
+import api from '../services/api';
 import analyticsService from '../services/analyticsService';
 
 const Stack = createStackNavigator();
 
 export const RootNavigator = () => {
   const { user, isLoading, isTransitioning } = useAuth();
+  const { refreshUser } = useUser();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const navigationRef = useRef<any>(null);
   const routeNameRef = useRef<string | undefined>(undefined);
@@ -91,6 +95,48 @@ export const RootNavigator = () => {
       subscription.remove();
     };
   }, []);
+
+  // Web: tratar retorno do Stripe Checkout (?checkout=success|cancel&session_id=...)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !user || typeof window === 'undefined') {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get('checkout');
+    const sessionId = params.get('session_id');
+
+    if (!checkoutStatus) {
+      return;
+    }
+
+    // Limpa a URL para não reprocessar em refresh
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    if (checkoutStatus === 'cancel') {
+      showAlert(
+        'Pagamento cancelado',
+        'Você cancelou o processo de upgrade. Tente novamente quando quiser!'
+      );
+      return;
+    }
+
+    if (checkoutStatus === 'success' && sessionId) {
+      (async () => {
+        try {
+          await api.get(`/checkout/verify/${sessionId}`);
+          await refreshUser();
+          showAlert(
+            '🎉 Bem-vindo ao Premium!',
+            'Sua assinatura foi ativada com sucesso. Aproveite todos os recursos!'
+          );
+        } catch {
+          // Webhook pode estar processando; apenas atualiza o estado local
+          await refreshUser();
+        }
+      })();
+    }
+  }, [user]);
 
   const checkOnboarding = async () => {
     try {

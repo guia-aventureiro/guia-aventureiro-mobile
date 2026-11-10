@@ -80,7 +80,9 @@ export const PricingScreen = ({ navigation }: any) => {
       setPortalLoading(true);
 
       // Obter URL do Customer Portal
-      const { url } = await subscriptionService.getCustomerPortalUrl();
+      const { url } = await subscriptionService.getCustomerPortalUrl(
+        Platform.OS === 'web' ? 'web' : undefined
+      );
 
       // Abrir Customer Portal (web: nova aba do navegador)
       if (Platform.OS === 'web') {

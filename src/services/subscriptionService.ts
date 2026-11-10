@@ -82,22 +82,23 @@ export const reactivateSubscription = async (): Promise<{
 /**
  * Criar sessão de checkout Stripe
  * Retorna URL para abrir no browser nativo
+ * client='web' faz o backend devolver URLs de retorno apontando para a SPA
  */
-export const createCheckoutSession = async (): Promise<{
+export const createCheckoutSession = async (client?: 'web'): Promise<{
   sessionId: string;
   url: string;
 }> => {
-  const { data } = await api.post('/subscriptions/create-checkout');
+  const { data } = await api.post('/subscriptions/create-checkout', client ? { client } : {});
   return data;
 };
 
 /**
  * Obter URL do Customer Portal (gerenciar assinatura)
  */
-export const getCustomerPortalUrl = async (): Promise<{
+export const getCustomerPortalUrl = async (client?: 'web'): Promise<{
   url: string;
 }> => {
-  const { data } = await api.post('/subscriptions/customer-portal');
+  const { data } = await api.post('/subscriptions/customer-portal', client ? { client } : {});
   return data;
 };
 

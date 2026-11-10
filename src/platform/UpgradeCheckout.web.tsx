@@ -24,7 +24,7 @@ export default function UpgradeCheckoutWeb() {
 
     (async () => {
       try {
-        const { url } = await createCheckoutSession();
+        const { url } = await createCheckoutSession('web');
         if (!url) {
           throw new Error('URL de checkout não recebida');
         }
