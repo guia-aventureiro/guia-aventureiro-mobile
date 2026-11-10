@@ -80,12 +80,18 @@ export const Tooltip: React.FC<TooltipProps> = ({
     if (position === 'bottom') {
       return {
         top: y + targetHeight + 16,
-        left: Math.max(20, Math.min(x - tooltipWidth / 2 + targetWidth / 2, width - tooltipWidth - 20)),
+        left: Math.max(
+          20,
+          Math.min(x - tooltipWidth / 2 + targetWidth / 2, width - tooltipWidth - 20)
+        ),
       };
     } else if (position === 'top') {
       return {
         top: y - tooltipHeight - 16,
-        left: Math.max(20, Math.min(x - tooltipWidth / 2 + targetWidth / 2, width - tooltipWidth - 20)),
+        left: Math.max(
+          20,
+          Math.min(x - tooltipWidth / 2 + targetWidth / 2, width - tooltipWidth - 20)
+        ),
       };
     } else {
       return {

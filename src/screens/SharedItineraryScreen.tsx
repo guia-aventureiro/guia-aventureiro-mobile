@@ -24,7 +24,11 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
   const { user } = useAuth();
 
   // Buscar roteiro compartilhado
-  const { data: itinerary, isLoading, error } = useQuery({
+  const {
+    data: itinerary,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['shared-itinerary', shareId],
     queryFn: () => itineraryService.getSharedItinerary(shareId),
     retry: 1,
@@ -48,11 +52,11 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
             params: { id: data.itinerary._id },
           });
         }, 300);
-        
+
         // Cleanup para detailTimer
         return () => clearTimeout(detailTimer);
       }, 500);
-      
+
       // Retornar cleanup para timer principal
       return () => clearTimeout(timer);
     },
@@ -109,9 +113,7 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorIcon, { color: colors.error }]}>⚠️</Text>
-          <Text style={[styles.errorTitle, { color: colors.text }]}>
-            Roteiro não encontrado
-          </Text>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Roteiro não encontrado</Text>
           <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
             Este roteiro não existe ou não está mais público.
           </Text>
@@ -130,10 +132,7 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={[styles.backButtonText, { color: colors.primary }]}>← Voltar</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
@@ -151,29 +150,32 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
         </View>
 
         {/* Info do criador */}
-        <View style={[styles.creatorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.creatorLabel, { color: colors.textSecondary }]}>
-            Criado por
-          </Text>
+        <View
+          style={[styles.creatorCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
+          <Text style={[styles.creatorLabel, { color: colors.textSecondary }]}>Criado por</Text>
           <Text style={[styles.creatorName, { color: colors.text }]}>
             {itinerary.owner?.name || 'Usuário'}
           </Text>
         </View>
 
         {/* Informações do roteiro */}
-        <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>📍 Destino</Text>
             <Text style={[styles.infoValue, { color: colors.text }]}>
-              {typeof itinerary.destination === 'string' 
-                ? itinerary.destination 
-                : `${itinerary.destination?.city || ''}, ${itinerary.destination?.country || ''}`
-              }
+              {typeof itinerary.destination === 'string'
+                ? itinerary.destination
+                : `${itinerary.destination?.city || ''}, ${itinerary.destination?.country || ''}`}
             </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>📅 Duração</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>{itinerary.duration} dias</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>
+              {itinerary.duration} dias
+            </Text>
           </View>
           {itinerary.budget?.estimatedTotal && itinerary.budget.estimatedTotal > 0 && (
             <View style={styles.infoRow}>
@@ -190,34 +192,37 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
           // Payload público pode vir com day.day ou day.dayNumber conforme a origem
           const dayNumber = day.day ?? day.dayNumber ?? dayIndex + 1;
           return (
-          <View
-            key={`day-${dayNumber}`}
-            style={[styles.dayCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <Text style={[styles.dayTitle, { color: colors.primary }]}>
-              Dia {dayNumber} - {day.title}
-            </Text>
-            {day.description && (
-              <Text style={[styles.dayDescription, { color: colors.textSecondary }]}>
-                {day.description}
+            <View
+              key={`day-${dayNumber}`}
+              style={[styles.dayCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <Text style={[styles.dayTitle, { color: colors.primary }]}>
+                Dia {dayNumber} - {day.title}
               </Text>
-            )}
-            {day.activities?.map((activity: any, actIndex: number) => (
-              <View key={`activity-${dayNumber}-${actIndex}`} style={[styles.activity, { borderTopColor: colors.border }]}>
-                <Text style={[styles.activityTime, { color: colors.primary }]}>
-                  {activity.time}
+              {day.description && (
+                <Text style={[styles.dayDescription, { color: colors.textSecondary }]}>
+                  {day.description}
                 </Text>
-                <Text style={[styles.activityTitle, { color: colors.text }]}>
-                  {activity.title}
-                </Text>
-                {activity.description && (
-                  <Text style={[styles.activityDescription, { color: colors.textSecondary }]}>
-                    {activity.description}
+              )}
+              {day.activities?.map((activity: any, actIndex: number) => (
+                <View
+                  key={`activity-${dayNumber}-${actIndex}`}
+                  style={[styles.activity, { borderTopColor: colors.border }]}
+                >
+                  <Text style={[styles.activityTime, { color: colors.primary }]}>
+                    {activity.time}
                   </Text>
-                )}
-              </View>
-            ))}
-          </View>
+                  <Text style={[styles.activityTitle, { color: colors.text }]}>
+                    {activity.title}
+                  </Text>
+                  {activity.description && (
+                    <Text style={[styles.activityDescription, { color: colors.textSecondary }]}>
+                      {activity.description}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
           );
         })}
 
@@ -232,8 +237,10 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
               <ActivityIndicator color={colors.white} />
             ) : (
               <>
-                <Text style={[styles.copyButtonText, { color: colors.white }]}>📋 Copiar para Minha Conta</Text>
-                <Text style={[styles.copyButtonSubtext, { color: colors.white }]}> 
+                <Text style={[styles.copyButtonText, { color: colors.white }]}>
+                  📋 Copiar para Minha Conta
+                </Text>
+                <Text style={[styles.copyButtonSubtext, { color: colors.white }]}>
                   Crie uma cópia deste roteiro que você pode editar
                 </Text>
               </>
@@ -242,12 +249,7 @@ export const SharedItineraryScreen = ({ route, navigation }: any) => {
         </View>
       </ScrollView>
 
-      <Toast 
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={hideToast}
-      />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </SafeAreaView>
   );
 };

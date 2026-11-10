@@ -20,7 +20,7 @@ import { showAlert } from '../components/CustomAlert';
 export const NotificationSettingsScreen = ({ navigation }: any) => {
   const colors = useColors();
   const { toast, hideToast, success, error: showError } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<NotificationSettings>({
@@ -58,48 +58,40 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
   const handleToggleEnabled = async (value: boolean) => {
     if (value && !permissionGranted) {
       // Solicitar permissão
-      showAlert(
-        'Permissão Necessária',
-        'Para receber notificações, precisamos da sua permissão.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Permitir',
-            onPress: async () => {
-              const granted = await pushNotificationService.requestPermissions();
-              if (granted) {
-                setPermissionGranted(true);
-                await handleRegisterToken(true);
-                setSettings({ ...settings, enabled: true });
-                success('Notificações ativadas!');
-              } else {
-                showError('Permissão negada. Ative nas configurações do dispositivo.');
-              }
-            },
+      showAlert('Permissão Necessária', 'Para receber notificações, precisamos da sua permissão.', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Permitir',
+          onPress: async () => {
+            const granted = await pushNotificationService.requestPermissions();
+            if (granted) {
+              setPermissionGranted(true);
+              await handleRegisterToken(true);
+              setSettings({ ...settings, enabled: true });
+              success('Notificações ativadas!');
+            } else {
+              showError('Permissão negada. Ative nas configurações do dispositivo.');
+            }
           },
-        ]
-      );
+        },
+      ]);
       return;
     }
 
     if (!value) {
       // Desativar notificações
-      showAlert(
-        'Desativar Notificações',
-        'Você não receberá mais lembretes e alertas do app.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Desativar',
-            style: 'destructive',
-            onPress: async () => {
-              await handleRegisterToken(false);
-              setSettings({ ...settings, enabled: false });
-              success('Notificações desativadas');
-            },
+      showAlert('Desativar Notificações', 'Você não receberá mais lembretes e alertas do app.', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Desativar',
+          style: 'destructive',
+          onPress: async () => {
+            await handleRegisterToken(false);
+            setSettings({ ...settings, enabled: false });
+            success('Notificações desativadas');
           },
-        ]
-      );
+        },
+      ]);
       return;
     }
 
@@ -128,7 +120,7 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
   const handleToggleSetting = async (key: keyof NotificationSettings, value: boolean) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
-    
+
     try {
       await pushNotificationService.saveSettings(newSettings);
     } catch (error: any) {
@@ -138,11 +130,9 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
 
   const handleTestNotification = async () => {
     if (!settings.enabled || !permissionGranted) {
-      showAlert(
-        'Notificações Desativadas',
-        'Ative as notificações para receber o teste.',
-        [{ text: 'OK' }]
-      );
+      showAlert('Notificações Desativadas', 'Ative as notificações para receber o teste.', [
+        { text: 'OK' },
+      ]);
       return;
     }
 
@@ -163,7 +153,10 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -191,9 +184,7 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
         <View style={[styles.section, { borderBottomColor: colors.border }]}>
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <Text style={[styles.settingTitle, { color: colors.text }]}>
-                Ativar Notificações
-              </Text>
+              <Text style={[styles.settingTitle, { color: colors.text }]}>Ativar Notificações</Text>
               <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
                 Receba lembretes e alertas importantes
               </Text>
@@ -330,7 +321,8 @@ export const NotificationSettingsScreen = ({ navigation }: any) => {
           style={[
             styles.testButton,
             {
-              backgroundColor: settings.enabled && permissionGranted ? colors.primary : colors.border,
+              backgroundColor:
+                settings.enabled && permissionGranted ? colors.primary : colors.border,
             },
           ]}
           onPress={handleTestNotification}

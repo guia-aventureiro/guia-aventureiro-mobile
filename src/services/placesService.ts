@@ -1,5 +1,6 @@
 // mobile/src/services/placesService.ts
 import axios from 'axios';
+import { Platform } from 'react-native';
 import env from '../config/env';
 
 const GOOGLE_PLACES_API_KEY = env.googleMapsKey;
@@ -56,6 +57,14 @@ class PlacesService {
     if (!GOOGLE_PLACES_API_KEY) {
       console.warn('Google Places API key não configurada');
       // Retornar sugestões mockadas para desenvolvimento
+      return this.getMockSuggestions(input);
+    }
+
+    // Web: o Places Web Service não aceita chamadas de navegador (CORS).
+    // No MVP web, respondemos com as sugestões locais diretamente, sem
+    // disparar uma requisição que sempre falha. Caminho de produção:
+    // proxy via backend ou Maps JS SDK com key restrita a HTTP referrer.
+    if (Platform.OS === 'web') {
       return this.getMockSuggestions(input);
     }
 

@@ -365,7 +365,7 @@ export const GenerateScreen = ({ navigation }: any) => {
                 value={city}
                 onChangeText={setCity}
                 containerStyle={styles.halfInput}
-                editable={false}
+                editable={Platform.OS === 'web'}
                 testID="generate-city"
               />
               <Input
@@ -374,7 +374,7 @@ export const GenerateScreen = ({ navigation }: any) => {
                 value={country}
                 onChangeText={setCountry}
                 containerStyle={styles.halfInput}
-                editable={false}
+                editable={Platform.OS === 'web'}
                 testID="generate-country"
               />
             </View>

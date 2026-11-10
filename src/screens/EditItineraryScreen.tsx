@@ -369,7 +369,7 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
                 value={city}
                 onChangeText={setCity}
                 containerStyle={styles.halfInput}
-                editable={false}
+                editable={Platform.OS === 'web'}
               />
               <Input
                 label="País"
@@ -377,7 +377,7 @@ export const EditItineraryScreen = ({ route, navigation }: any) => {
                 value={country}
                 onChangeText={setCountry}
                 containerStyle={styles.halfInput}
-                editable={false}
+                editable={Platform.OS === 'web'}
               />
             </View>
           </View>

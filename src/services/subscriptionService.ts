@@ -84,7 +84,9 @@ export const reactivateSubscription = async (): Promise<{
  * Retorna URL para abrir no browser nativo
  * client='web' faz o backend devolver URLs de retorno apontando para a SPA
  */
-export const createCheckoutSession = async (client?: 'web'): Promise<{
+export const createCheckoutSession = async (
+  client?: 'web'
+): Promise<{
   sessionId: string;
   url: string;
 }> => {
@@ -95,7 +97,9 @@ export const createCheckoutSession = async (client?: 'web'): Promise<{
 /**
  * Obter URL do Customer Portal (gerenciar assinatura)
  */
-export const getCustomerPortalUrl = async (client?: 'web'): Promise<{
+export const getCustomerPortalUrl = async (
+  client?: 'web'
+): Promise<{
   url: string;
 }> => {
   const { data } = await api.post('/subscriptions/customer-portal', client ? { client } : {});
